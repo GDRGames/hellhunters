@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HellHunters</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter and Orbitron (keeping Orbitron for titles, adjusting Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Apply Inter font family to body for general text */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden; /* Prevent horizontal scroll due to background */
+            overflow-y: auto; /* Allow vertical scrolling if content overflows */
+        }
+
+        /* Specific styling for Orbitron font for headings/titles */
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Neon glow effect for titles, now with a darker, fiery feel */
+        .drop-shadow-neon {
+            text-shadow:
+                0 0 5px #f00,    /* Bright red */
+                0 0 10px #f00,   /* Bright red */
+                0 0 20px #800,   /* Darker red */
+                0 0 40px #400,   /* Even darker red */
+                0 0 80px #200;   /* Deep red */
+        }
+
+        /* Custom scrollbar for better aesthetics, now red/black themed */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1a1a1a; /* Dark track */
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, #8B0000, #400000); /* Dark Red gradient */
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(to bottom, #A00000, #500000); /* Darker red on hover */
+        }
+
+        /* Neon shadow for interactive elements, now red/purple themed */
+        .shadow-neon {
+            box-shadow:
+                0 0 5px rgba(139, 0, 0, 0.5), /* DarkRed */
+                0 0 10px rgba(70, 0, 0, 0.5), /* Even Darker Red */
+                0 0 15px rgba(255, 0, 0, 0.5); /* Bright Red */
+        }
+
+        /* Basic keyframes for pulse effect (keeping existing) */
+        @keyframes pulse-once {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .animate-pulse-once {
+            animation: pulse-once 1.5s ease-out;
+        }
+
+        /* Keyframes for grid background pulse, now with dark red glow */
+        @keyframes pulse-grid {
+            0% { opacity: 0.05; }
+            50% { opacity: 0.15; }
+            100% { opacity: 0.05; }
+        }
+
+        .animate-pulse-grid {
+            animation: pulse-grid 5s infinite alternate ease-in-out;
+            background-color: rgba(70, 0, 0, 0.3); /* Base grid cell color */
+        }
+
+        /* Keyframes for fade-in effect (keeping existing) */
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fade-in 1s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-950 text-white font-inter relative">
+    <!-- Background neon grid effect -->
+    <div class="absolute inset-0 z-0 opacity-10 pointer-events-none">
+        <div class="grid grid-cols-10 md:grid-cols-20 gap-px h-full w-full">
+            <!-- Grid cells, dynamically filled by JS for animation delay -->
+        </div>
+    </div>
+
+    <!-- Main content area -->
+    <div id="app-container" class="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
+        <h1 class="text-5xl md:text-6xl font-orbitron font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-900 drop-shadow-neon mb-8 text-center uppercase tracking-wider">
+            HELLHUNTERS
+        </h1>
+
+        <div id="game-content" class="w-full flex flex-col items-center">
+            <!-- Content will be injected here by JavaScript (Character Creator or Game Screen) -->
+        </div>
+    </div>
+
+    <!-- Modals will be dynamically added/removed here by JavaScript -->
+    <div id="modal-container"></div>
+
+    <script>
+        // Global game state variables
+        let character = null;
+        let gameHistory = [];
+        let importantLocations = [];
+        let importantPeople = [];
+        let importantEvents = [];
+        let currentScreen = 'characterCreator'; // 'characterCreator', 'game'
+
+        // Modals state (managed by direct DOM manipulation)
+        let showLocationsModal = false;
+        let showPeopleModal = false;
+        let showCommandsModal = false;
+        let showLoreModal = false;
+        let showMicrophoneHelpModal = false;
+
+        // Reference for speech recognition API
+        let recognition = null;
+        let isListening = false;
+
+        // =====================================================================================================================================================
+        // IMPORTANT: API Key for Google Gemini
+        // This key will be provided by the Canvas environment when running in preview.
+        // If you download and host this file elsewhere (e.g., Itch.io), you will need to replace
+        // the empty string with your own valid Google Cloud API key and configure its HTTP referrer restrictions.
+        //
+        // How to get an API Key for external hosting:
+        // 1. Go to Google Cloud Console: https://console.cloud.google.com/
+        // 2. Create a new project or select an existing one.
+        // 3. Navigate to "APIs & Services" > "Credentials".
+        // 4. Click "Create Credentials" > "API Key".
+        // 5. IMPORTANT: You MUST restrict this API key. In the "API restrictions" section, select "Restrict key".
+        //    For "Application restrictions", choose "HTTP referrers (web sites)" and add the domains where your game will be hosted.
+        //    - For Itch.io, this might include your specific Itch.io game URL (e.g., `https://your-username.itch.io/your-game-name/*`) and `https://itch.io/*`.
+        //    - For local testing, you might need to add `http://localhost:*` or `http://127.0.0.1:*`.
+        //    - Ensure the "Generative Language API" is enabled in your Google Cloud project for this API key to function.
+        // WARNING: Embedding API keys directly in client-side code is generally insecure for production applications.
+        // For production, consider using a backend proxy to handle API calls securely.
+        const API_KEY = ""; // Keep this empty for Canvas preview to work automatically
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + API_KEY;
+        // =====================================================================================================================================================
+
+        // Define race data with new fantasy themes and stat modifiers
+        const races = {
+            human: {
+                name: 'Human',
+                description: 'Versatile and adaptable, humans excel in many paths.',
+                modifiers: {}, // No specific modifiers
+            },
+            dwarf: {
+                name: 'Dwarf',
+                description: 'Stout and resilient, master craftsmen and unyielding in battle.',
+                modifiers: { strength: 1, durability: 2, dexterity: -1 },
+            },
+            forestElf: {
+                name: 'Forest Elf',
+                description: 'Graceful and wise, with deep connection to nature and keen senses.',
+                modifiers: { dexterity: 2, intelligence: 1, strength: -1 },
+            },
+            minotaur: {
+                name: 'Minotaur',
+                description: 'Imposing and powerful, known for their brute force and unwavering charge.',
+                modifiers: { strength: 3, durability: 1, charisma: -2 },
+            },
+            lycan: {
+                name: 'Lycan',
+                description: 'Shifters with enhanced senses and primal strength, torn between two worlds.',
+                modifiers: { strength: 2, dexterity: 1, intelligence: -1 },
+            },
+        };
+
+        // Define class data with new fantasy themes and stat modifiers
+        const classes = {
+            hunter: {
+                name: 'Hunter',
+                description: 'A master of the wild, tracking beasts and felling foes with precision.',
+                modifiers: { dexterity: 2, luck: 1 },
+            },
+            warrior: {
+                name: 'Warrior',
+                description: 'A stalwart combatant, trained in all manner of arms and armor.',
+                modifiers: { strength: 2, durability: 1, intelligence: -1 },
+            },
+            barbarian: {
+                name: 'Barbarian',
+                description: 'A primal force of nature, unleashing furious attacks in a berserker rage.',
+                modifiers: { strength: 3, durability: 2, charisma: -2 },
+            },
+            ranger: {
+                name: 'Ranger',
+                description: 'A skilled archer and scout, at home in the wilderness, guiding allies and ambushing enemies.',
+                modifiers: { dexterity: 3, intelligence: 1, strength: -1 },
+            },
+            assassin: {
+                name: 'Assassin',
+                description: 'A master of stealth and lethal strikes, eliminating targets from the shadows.',
+                modifiers: { dexterity: 3, luck: 2, durability: -1 },
+            },
+        };
+
+        // Helper function to roll a single stat within the specified range (5-14)
+        const rollStat = () => Math.floor(Math.random() * (14 - 5 + 1)) + 5;
+
+        // --- Utility Functions ---
+
+        // Function to update a message displayed to the user
+        function updateMessage(msg, type = 'info') {
+            const messageElement = document.getElementById('game-message');
+            if (messageElement) {
+                messageElement.textContent = msg;
+                // Adjusted colors for theme
+                messageElement.className = `bg-${type}-900/50 text-${type}-200 border border-${type}-700 p-2 rounded-md mb-2 text-sm text-center`;
+                if (type === 'red') { // Specifically for error/warning messages
+                    messageElement.classList.add('bg-red-900/50', 'text-red-200', 'border-red-700');
+                } else if (type === 'info') { // Default info messages
+                    messageElement.classList.add('bg-gray-900/50', 'text-gray-200', 'border-gray-700');
+                }
+                if (!msg) messageElement.style.display = 'none'; // Hide if empty
+                else messageElement.style.display = 'block'; // Show if message
+            }
+        }
+
+        // Simulates saving state (no persistence in this HTML-only version)
+        function saveGameState() {
+            console.log("Saving is disabled in HTML-only mode. Progress will not persist.");
+            // In a real HTML-only scenario with persistence, you might use localStorage here.
+        }
+
+        // Scrolls the chat history to the bottom
+        function scrollToBottom() {
+            const chatHistoryElement = document.getElementById('chat-history');
+            if (chatHistoryElement) {
+                chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
+            }
+        }
+
+        // --- Modals ---
+
+        // Renders a generic modal structure, updated with red/black theme
+        function renderModal(title, contentHTML, onClose, borderColor = 'red-500', titleColor = 'red-400') {
+            const modalContainer = document.getElementById('modal-container');
+            modalContainer.innerHTML = `
+                <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                    <div class="bg-gray-900 border-2 border-${borderColor} rounded-lg shadow-neon p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        <h3 class="text-2xl font-orbitron text-${titleColor} mb-4 border-b border-gray-700 pb-2">${title}</h3>
+                        <div class="text-gray-300 text-sm space-y-4">
+                            ${contentHTML}
+                        </div>
+                        <button id="modal-close-button"
+                            class="mt-6 px-4 py-2 bg-gradient-to-r from-red-700 to-red-900 text-white font-bold rounded-lg shadow-md hover:from-red-800 hover:to-red-950 transition-all duration-300">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-close-button').onclick = onClose;
+        }
+
+        function hideModal() {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+
+        function showLocationsModalFunc() {
+            const content = importantLocations.length > 0 ?
+                `<ul class="list-disc list-inside">${importantLocations.map(loc => `<li>${loc}</li>`).join('')}</ul>` :
+                `<p>No important locations recorded yet in your travels.</p>`;
+            renderModal('Discovered Locales', content, () => { showLocationsModal = false; hideModal(); }, 'red-500', 'red-400');
+            showLocationsModal = true;
+        }
+
+        function showPeopleModalFunc() {
+            const content = importantPeople.length > 0 ?
+                `<ul class="list-disc list-inside">${importantPeople.map(person => `<li>${person}</li>`).join('')}</ul>` :
+                `<p>No important individuals encountered yet.</p>`;
+            renderModal('Notable Individuals', content, () => { showPeopleModal = false; hideModal(); }, 'red-500', 'red-400');
+            showPeopleModal = true;
+        }
+
+        function showCommandsModalFunc() {
+            const commands = [
+                { cmd: '!RESTART', desc: 'Erases all game progress and starts a new character creation.' },
+                { cmd: '!LOCALES', desc: 'Displays a list of all important locations discovered so far.' },
+                { cmd: '!PEOPLE', desc: 'Displays a list of all important people encountered so far.' },
+                { cmd: '!LORE', desc: 'Displays a comprehensive guide to the world of HellHunters.' },
+                { cmd: '!COPYLOG', desc: 'Copies the entire game history to your clipboard.' },
+                { cmd: '!MICROPHONEHELP', desc: 'Provides guidance on enabling microphone access for voice input.' },
+                { cmd: '!COMMANDS', desc: 'Shows this list of available game commands.' },
+            ];
+            const content = `<ul class="list-none text-gray-300 space-y-3">
+                ${commands.map(cmd => `
+                    <li>
+                        <span class="font-bold text-lg text-red-300 block">${cmd.cmd}</span>
+                        <span class="text-sm italic text-gray-400">${cmd.desc}</span>
+                    </li>
+                `).join('')}
+            </ul>`;
+            renderModal('Available Commands', content, () => { showCommandsModal = false; hideModal(); }, 'red-700', 'red-500');
+            showCommandsModal = true;
+        }
+        
+        function showLoreModalFunc() {
+            const loreData = [
+                { category: "I. The World of HellHunters", sections: [{ title: "Atmosphere & Core Themes", content: ["**The Realm of Atheria:** A world perpetually teetering on the brink, threatened by incursions from the infernal realm of Hell. It is a land of ancient forests, towering mountains, and sprawling plains, dotted with human settlements, dwarven strongholds, and elven enclaves.", "**The Scourge of Hell:** The primary threat comes from the Grand Gates of Hell, seeping corruption and demonic entities into the mortal realm. This is not a fiery hell, but a desolate, grey landscape of rot, dead forests, and tormented denizens.", "**Ancient Prophecies & Fading Hope:** The world is steeped in old legends of heroes and dark omens. Hope is a precious commodity, often found in unexpected places.", "**Survival & Sacrifice:** Life is harsh, and difficult choices abound. Survival often demands sacrifice, and courage is tested daily."] }] },
+                { category: "II. Geography & Key Locales", sections: [
+                    { name: 'Redstone Village', vibe: 'Modest, resilient, frontier.', features: 'A small, fortified village nestled near the foothills, known for its red-tinged stone buildings and resilient populace. It serves as a common starting point for adventurers venturing into more dangerous territories. Features a sturdy tavern, a basic merchant, and a small shrine.' },
+                    { name: 'Lake Verimn', vibe: 'Mysterious, serene, ancient.', features: 'A vast, deep lake surrounded by ancient, misty forests. Legends say a powerful, ancient magic resides beneath its surface, and strange creatures are rumored to dwell in its depths. Elven settlements can be found on its shores.' },
+                    { name: 'The Wasted Lands', vibe: 'Desolate, dangerous, cursed.', features: 'A once-vibrant forest, now a desolate, scorching desert of ash and cracked earth. This land was corrupted by the Grand Gates of Hell, and is teeming with mutated beasts and lost souls. Surviving here is a test of sheer will.' },
+                    { name: 'The Grand Gates of Hell', vibe: 'Foreboding, terrifying, unholy.', features: 'A colossal, monstrous gateway etched into the very earth of the Wasted Lands. It constantly seeps dark energy, corrupting the surrounding area and allowing denizens of Hell to spill forth. Its very presence twists reality, and only the bravest (or most foolish) dare approach.' },
+                    { name: 'Hell', vibe: 'Rotten, desolate, torment.', features: 'Not a realm of fire, but a vast, oppressive land cloaked in perpetual grey. Dead forests stretch endlessly, the air is thick with the scent of decay, and the ground is littered with the remnants of tortured souls. Denizens of the dead roam freely, consumed by an unending, silent agony. A place where hope dies.' },
+                    { name: 'The Vandals Paradise', vibe: 'Decayed, twisted, morbidly mundane.', features: 'A grim parody of a normal village, located deep within Hell. Populated by the restless dead, they "toil" at rotten looms, mend decaying tools, and barter decrepit wares. It is a terrifying insight into the mundane horror of damnation.' },
+                    { name: 'Silvershield City', vibe: 'Grand, besieged, hopeful.', features: 'A sprawling, magnificent city, protected by towering walls and the revered Order of the Silver Blade. It stands as a beacon of civilization against the encroaching darkness, but is under constant threat from demonic incursions and internal strife. Features grand markets, temples, and the Royal Palace.' },
+                ].map(d => ({ title: d.name, content: [`**Vibe:** ${d.vibe}`, `**Features:** ${d.features}`] }))},
+                { category: "III. Power Structures: Clans & Orders", sections: [
+                    { title: "Major Factions & Organizations", content: [
+                        "**The Order of the Silver Blade (Human Knights):** The disciplined defenders of Silvershield City and the surrounding human lands. Comprised of noble knights and paladins, they are dedicated to combating the forces of Hell. **Goals:** Protect the innocent, push back the demonic threat, uphold justice. **Methods:** Military might, sacred magic, unwavering faith.",
+                        "**The Ironclad Clan (Dwarven Warriors):** A proud and fierce dwarven clan residing in mountain fortresses. Renowned for their masterwork weaponry, impenetrable defenses, and stubborn resilience against any foe, especially those from below. **Goals:** Safeguard dwarven strongholds, mine precious ores, forge legendary armaments, eradicate subterranean threats. **Methods:** Superior craftsmanship, disciplined phalanxes, runic magic.",
+                        "**The Whispering Woods Confederacy (Forest Elf Enclaves):** A loose alliance of elven enclaves hidden deep within ancient forests, particularly around Lake Verimn. They are guardians of nature and ancient lore, wary of outsiders but fierce in defense of their sacred groves. **Goals:** Preserve nature, study ancient magic, repel corruption, maintain balance. **Methods:** Stealth, natural magic, precision archery, diplomatic alliances.",
+                        "**The Shadowed Paw Tribe (Lycan Nomads):** A reclusive and often misunderstood tribe of Lycans, living a nomadic existence on the fringes of civilization. They possess a deep understanding of survival and often act as independent hunters or trackers, sometimes hired by desperate settlements. **Goals:** Protect their pack, maintain their way of life, endure the growing darkness. **Methods:** Primal strength, enhanced senses, guerrilla tactics.",
+                        "**The Horned Guard (Minotaur Enclave):** A formidable minotaur society dwelling in labyrinthine caverns beneath certain mountain ranges. Highly disciplined and honorable, they are fierce warriors who value strength, courage, and direct confrontation. They are generally isolationist but will emerge if their lands or allies are threatened. **Goals:** Preserve their traditions, hone their combat skills, guard ancient secrets, confront threats head-on. **Methods:** Brute force, tactical charges, labyrinthine defense, ancestral combat rituals.",
+                        "**The Bleak Horde (Demonic Legion):** The collective forces of Hell, pouring forth from the Grand Gates. Comprised of various grotesque demons, tormented souls, and corrupted creatures. They seek to spread desolation and claim the mortal realm for their infernal masters. **Goals:** Corrupt, destroy, conquer. **Methods:** Overwhelming numbers, dark magic, fear, relentless assault."
+                    ]},
+                    { title: "Leaders of Power & Influence", content: [
+                        "**Mortals:**",
+                        " - **High Commander Alaric (Order of the Silver Blade):** A seasoned warrior and devout paladin, leading the defense of Silvershield City. **Personality:** Stern, honorable, unyielding, but burdened by the weight of leadership. **Agenda:** Protecting his people, finding a way to seal the Grand Gates.",
+                        " - **Elder Borin Stonehand (Ironclad Clan):** The venerable leader of the Ironclad Clan, a master smith and tactician. **Personality:** Gruff, wise, proud, and fiercely loyal to his kin. **Agenda:** Ensuring the survival and prosperity of his clan, opposing demonic incursions.",
+                        " - **Whisperwind Elara (Whispering Woods Confederacy):** An ancient Forest Elf mystic and diplomat, guiding her people with foresight and a deep connection to the land. **Personality:** Calm, enigmatic, patient, but with an underlying steel. **Agenda:** Preserving the ancient forests, uncovering lost magical knowledge, protecting sacred sites.",
+                        "**Denizens of Hell:**",
+                        " - **The Despoiler (Archdemon):** A grotesque and ancient archdemon, believed to be the primary general commanding the Bleak Horde. Its motives are unknown, but its power is undeniable. **Personality:** Cruel, cunning, patient, driven by an alien malevolence. **Agenda:** The utter corruption and consumption of Atheria."
+                    ]}
+                ] },
+                { category: "IV. Arcane & Artefacts: Magic & Gear", sections: [
+                    { title: "The Arcane Arts", content: [
+                        "Magic in Atheria is a raw, untamed force, channeled through various disciplines:",
+                        "**Divine Magic:** Wielded by priests and paladins, drawing power from deities or sacred convictions. Focuses on healing, protection, and smiting evil.",
+                        "**Nature Magic:** Practiced by druids and rangers, connected to the primal forces of the land, forests, and spirits. Used for growth, binding, and controlling elements.",
+                        "**Arcane Magic:** The study of pure magical energies, channeled by mages and sorcerers. Diverse spells from destructive fireballs to illusion and teleportation.",
+                        "**Dark Magic:** Forbidden arts, drawing power from infernal sources or corrupted life force. Often used by cultists and demons for necromancy, curses, and soul manipulation."
+                    ]},
+                    { title: "Notable Gear & Equipment", content: [
+                        "**Hunter's Bow (Precision):** A finely crafted bow, often imbued with a hunter's spirit, allowing for exceptional accuracy and silent kills.",
+                        "**Warrior's Greatsword (Brute Force):** A massive, two-handed sword, perfectly balanced for cleaving through multiple foes with overwhelming power.",
+                        "**Barbarian's Axe (Unleashed Fury):** A crude yet devastating axe, designed for wild, unpredictable swings that can tear through armor and flesh.",
+                        "**Ranger's Longbow (Range & Stealth):** An extended bow, ideal for long-range engagements and striking from concealed positions without detection.",
+                        "**Assassin's Daggers (Swift Death):** A pair of razor-sharp daggers, favored for lightning-fast, precise strikes that exploit vulnerabilities.",
+                        "**Durability Armor (Resilience):** Heavily reinforced armor, often enchanted, providing exceptional protection against both physical and magical assaults."
+                    ]},
+                ] },
+                { category: "V. Current Plot Hooks & Story Themes", sections: [
+                    { title: "Potential Adventures in Atheria", content: [
+                        "**The Blight of the Wasted Lands:** The Grand Gates are expanding their influence, turning more fertile land into desolate waste. A desperate plea arrives for heroes to push back the corruption.",
+                        "**Missing Dwarven Expedition:** A mining expedition from the Ironclad Clan has vanished deep within a newly discovered cavern system. Are they lost, or have they encountered something far more sinister?",
+                        "**Elven Sacred Grove Under Siege:** A vital elven sacred grove near Lake Verimn is being corrupted by dark magic, threatening to unleash ancient evils. Aid the elves in its defense and cleansing.",
+                        "**Lycan Betrayal/Accusation:** A series of brutal attacks near a human settlement are blamed on the Shadowed Paw Tribe, but evidence suggests a deeper conspiracy.",
+                        "**Assault on Silvershield City:** The Bleak Horde mounts a massive, coordinated assault on the capital. The player must help defend the city and push back the demonic tides.",
+                        "**The Vandals Paradise Pilgrimage:** Rumors circulate of a strange artifact or vital piece of lore hidden within The Vandals Paradise in Hell, requiring a perilous journey into the realm of the dead.",
+                        "**The Despoiler's Gambit:** The Archdemon's plans begin to unfold, threatening to plunge Atheria into eternal darkness. Uncover its scheme and find a way to stop it."
+                    ]}
+                ] }
+            ];
+
+            let contentHTML = '<div class="space-y-8">';
+            loreData.forEach(categoryData => {
+                contentHTML += `<div>
+                    <h4 class="text-2xl font-orbitron text-red-400 mb-3 border-b border-gray-800 pb-1">${categoryData.category}</h4>
+                    <div class="space-y-4">`;
+                categoryData.sections.forEach(section => {
+                    contentHTML += `<div class="p-3 bg-gray-800/50 rounded-md border border-gray-700">
+                        <p class="font-bold text-lg text-white mb-2">${section.title}</p>`;
+                    section.content.forEach(paragraph => {
+                        // Replace markdown bolding with HTML strong tags for modal display
+                        const formattedParagraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        contentHTML += `<p class="text-gray-300 text-sm mb-1">${formattedParagraph}</p>`;
+                    });
+                    contentHTML += `</div>`;
+                });
+                contentHTML += `</div></div>`;
+            });
+            contentHTML += `</div>`;
+
+            renderModal('HellHunters Lore Compendium', contentHTML, () => { showLoreModal = false; hideModal(); }, 'red-700', 'red-500');
+            showLoreModal = true;
+        }
+
+        function showMicrophoneHelpModalFunc() {
+            const content = `<div class="text-gray-300 text-sm space-y-4">
+                <p>If you're having trouble with voice input, ensure your browser has permission to access your microphone.</p>
+                <p class="font-bold text-lg text-red-300">Common Browser Settings:</p>
+                <div>
+                    <p class="font-semibold text-white">Google Chrome:</p>
+                    <ul class="list-disc list-inside ml-4">
+                        <li>Click the <b>lock icon</b> or <b>camera icon</b> in the left side of the address bar.</li>
+                        <li>Find "Microphone" and select "Allow" or "Always allow on this site."</li>
+                        <li>You may need to reload the page.</li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="font-semibold text-white">Mozilla Firefox:</p>
+                    <ul class="list-disc list-inside ml-4">
+                        <li>Click the <b>microphone icon</b> or <b>camera icon</b> in the left side of the address bar.</li>
+                        <li>Select "Allow" or "Always Allow Access."</li>
+                        <li>You may need to reload the page.</li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="font-semibold text-white">Microsoft Edge:</p>
+                    <ul class="list-disc list-inside ml-4">
+                        <li>Click the <b>lock icon</b> or <b>camera icon</b> in the left side of the address bar.</li>
+                        <li>Under "Microphone," select "Allow" or "Ask (recommended)."</li>
+                        <li>You may need to reload the page.</li>
+                    </ul>
+                </div>
+                <p class="text-red-300 italic">If these steps don't work, check your operating system's privacy settings for microphone access and ensure your browser is listed and allowed.</p>
+            </div>`;
+            renderModal('Microphone Access Help', content, () => { showMicrophoneHelpModal = false; hideModal(); }, 'red-700', 'red-500');
+            showMicrophoneHelpModal = true;
+        }
+
+
+        // --- Character Creator Screen ---
+
+        function renderCharacterCreator() {
+            const gameContent = document.getElementById('game-content');
+            gameContent.innerHTML = `
+                <div class="w-full max-w-4xl bg-gray-800/70 backdrop-blur-sm p-8 rounded-xl shadow-neon border-2 border-red-700 animate-fade-in text-center">
+                    <h2 class="text-3xl font-orbitron text-red-400 mb-6">Character Creation</h2>
+
+                    <div id="creator-message" class="hidden bg-red-900/50 text-red-200 border border-red-700 p-3 rounded-md mb-4 text-sm"></div>
+
+                    <!-- Character Name Input -->
+                    <div class="mb-8">
+                        <h3 class="text-2xl text-red-300 mb-4">Choose Your Name:</h3>
+                        <input type="text" id="character-name-input"
+                            class="w-full p-3 rounded-lg bg-gray-900 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-400"
+                            placeholder="Enter your character's name..." maxlength="25">
+                    </div>
+
+                    <!-- Gender Selection -->
+                    <div class="mb-8">
+                        <h3 class="text-2xl text-red-300 mb-4">Choose Your Gender:</h3>
+                        <div class="flex justify-center gap-4">
+                            <label class="inline-flex items-center"><input type="radio" class="form-radio text-red-600 h-5 w-5" name="gender" value="Male"> <span class="ml-2 text-white">Male</span></label>
+                            <label class="inline-flex items-center"><input type="radio" class="form-radio text-red-600 h-5 w-5" name="gender" value="Female"> <span class="ml-2 text-white">Female</span></label>
+                            <label class="inline-flex items-center"><input type="radio" class="form-radio text-red-600 h-5 w-5" name="gender" value="Other"> <span class="ml-2 text-white">Other</span></label>
+                        </div>
+                    </div>
+
+                    <!-- Race Selection -->
+                    <div class="mb-8">
+                        <h3 class="2xl text-red-300 mb-4">Choose Your Race:</h3>
+                        <div id="race-selection" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Race buttons will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Class Selection -->
+                    <div class="mb-8">
+                        <h3 class="2xl text-red-300 mb-4">Choose Your Class:</h3>
+                        <div id="class-selection" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Class buttons will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Stat Rolling & Display -->
+                    <div class="mb-8">
+                        <h3 class="2xl text-red-300 mb-4">Your Stats:</h3>
+                        <div id="stats-display" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                            <!-- Stats will be injected here -->
+                        </div>
+                        <button id="roll-stats-button"
+                            class="px-6 py-3 bg-gradient-to-r from-gray-700 to-red-800 text-white font-bold rounded-lg shadow-lg hover:from-gray-800 hover:to-red-900 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Roll Stats (5-14 base)
+                        </button>
+                    </div>
+
+                    <!-- Character Description Generation -->
+                    <div id="description-section" class="mb-8 hidden">
+                        <h3 class="2xl text-red-300 mb-4">Character Description:</h3>
+                        <div id="character-description-display" class="bg-gray-700/50 p-4 rounded-md border border-gray-600 text-left text-gray-300 whitespace-pre-wrap">
+                            Generate a description based on your choices and stats.
+                        </div>
+                        <button id="generate-description-button"
+                            class="mt-4 px-6 py-3 bg-gradient-to-r from-red-600 to-red-900 text-white font-bold rounded-lg shadow-lg hover:from-red-700 hover:to-red-950 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Conjure Character Description
+                        </button>
+                    </div>
+
+                    <!-- Start Game Button -->
+                    <button id="start-game-button"
+                        class="mt-8 px-8 py-4 bg-gradient-to-r from-red-700 to-black text-white font-bold text-xl rounded-lg shadow-lg hover:from-red-800 hover:to-gray-900 transition-all duration-300 animate-pulse-once hidden">
+                        Descend into Atheria
+                    </button>
+                </div>
+            `;
+            setupCharacterCreatorListeners();
+            updateCreatorMessage(''); // Clear any previous messages
+        }
+
+        let characterCreatorState = {
+            name: '',
+            gender: '',
+            raceKey: null,
+            classKey: null,
+            stats: { strength: 0, intelligence: 0, dexterity: 0, charisma: 0, luck: 0, durability: 0 }, // Updated stats
+            description: '',
+            isRolling: false,
+            isGeneratingDescription: false,
+        };
+
+        function updateCreatorMessage(msg, type = 'info') {
+            const msgEl = document.getElementById('creator-message');
+            if (msgEl) {
+                msgEl.textContent = msg;
+                msgEl.className = `bg-${type}-900/50 text-${type}-200 border border-${type}-700 p-3 rounded-md mb-4 text-sm`;
+                if (type === 'red') {
+                    msgEl.classList.add('bg-red-900/50', 'text-red-200', 'border-red-700');
+                } else if (type === 'info') {
+                    msgEl.classList.add('bg-gray-900/50', 'text-gray-200', 'border-gray-700');
+                }
+                if (msg) msgEl.style.display = 'block';
+                else msgEl.style.display = 'none';
+            }
+        }
+
+        function renderRaceButtons() {
+            const container = document.getElementById('race-selection');
+            container.innerHTML = Object.entries(races).map(([key, race]) => `
+                <button type="button" data-race-key="${key}"
+                    class="p-4 rounded-lg border-2 ${characterCreatorState.raceKey === key ? 'border-red-400 bg-red-900/30' : 'border-gray-700 bg-gray-900/50 hover:border-red-400'}
+                    transition-all duration-300 transform hover:scale-105">
+                    <span class="font-bold text-xl block text-white">${race.name}</span>
+                    <span class="text-sm text-gray-400">${race.description}</span>
+                    ${Object.keys(race.modifiers).length > 0 ? `
+                    <div class="mt-2 text-xs text-yellow-400">
+                        Modifiers: ${Object.entries(race.modifiers).map(([stat, val]) => `
+                        <span>${val > 0 ? '+' : ''}${val} ${stat.charAt(0).toUpperCase() + stat.slice(1)} </span>
+                        `).join('')}
+                    </div>` : ''}
+                </button>
+            `).join('');
+            container.querySelectorAll('button').forEach(button => {
+                button.onclick = () => {
+                    characterCreatorState.raceKey = button.dataset.raceKey;
+                    renderRaceButtons(); // Re-render to update selection style
+                    updateRollStatsButtonState();
+                };
+            });
+        }
+
+        function renderClassButtons() {
+            const container = document.getElementById('class-selection');
+            container.innerHTML = Object.entries(classes).map(([key, cls]) => `
+                <button type="button" data-class-key="${key}"
+                    class="p-4 rounded-lg border-2 ${characterCreatorState.classKey === key ? 'border-red-400 bg-red-900/30' : 'border-gray-700 bg-gray-900/50 hover:border-red-400'}
+                    transition-all duration-300 transform hover:scale-105">
+                    <span class="font-bold text-xl block text-white">${cls.name}</span>
+                    <span class="text-sm text-gray-400">${cls.description}</span>
+                    ${Object.keys(cls.modifiers).length > 0 ? `
+                    <div class="mt-2 text-xs text-yellow-400">
+                        Modifiers: ${Object.entries(cls.modifiers).map(([stat, val]) => `
+                        <span>${val > 0 ? '+' : ''}${val} ${stat.charAt(0).toUpperCase() + stat.slice(1)} </span>
+                        `).join('')}
+                    </div>` : ''}
+                </button>
+            `).join('');
+            container.querySelectorAll('button').forEach(button => {
+                button.onclick = () => {
+                    characterCreatorState.classKey = button.dataset.classKey;
+                    renderClassButtons(); // Re-render to update selection style
+                    updateRollStatsButtonState();
+                };
+            });
+        }
+
+        function renderStatsDisplay() {
+            const container = document.getElementById('stats-display');
+            container.innerHTML = Object.entries(characterCreatorState.stats).map(([statName, value]) => `
+                <div class="bg-gray-700/50 p-3 rounded-md border border-gray-600 flex justify-between items-center">
+                    <span class="text-lg text-white font-semibold">${statName.charAt(0).toUpperCase() + statName.slice(1)}:</span>
+                    <span class="text-xl text-red-300 font-bold">${value}</span>
+                </div>
+            `).join('');
+            updateGenerateDescriptionButtonState();
+        }
+
+        function updateRollStatsButtonState() {
+            const button = document.getElementById('roll-stats-button');
+            button.disabled = !characterCreatorState.raceKey || !characterCreatorState.classKey || characterCreatorState.isRolling;
+            button.textContent = characterCreatorState.isRolling ? 'Rolling...' : 'Roll Stats (5-14 base)';
+        }
+
+        function updateGenerateDescriptionButtonState() {
+            const button = document.getElementById('generate-description-button');
+            const descriptionSection = document.getElementById('description-section');
+            const startGameButton = document.getElementById('start-game-button');
+
+            const canGenerate = characterCreatorState.name.trim() &&
+                                 characterCreatorState.gender &&
+                                 characterCreatorState.raceKey &&
+                                 characterCreatorState.classKey &&
+                                 Object.values(characterCreatorState.stats).every(s => s > 0) &&
+                                 !characterCreatorState.isGeneratingDescription;
+
+            if (Object.values(characterCreatorState.stats).every(s => s > 0)) {
+                descriptionSection.style.display = 'block';
+            } else {
+                descriptionSection.style.display = 'none';
+            }
+
+            button.disabled = !canGenerate;
+            button.textContent = characterCreatorState.isGeneratingDescription ? 'Conjuring...' : 'Conjure Character Description';
+
+            startGameButton.style.display = characterCreatorState.description ? 'block' : 'hidden';
+        }
+
+        function setupCharacterCreatorListeners() {
+            // Initial render of dynamic elements
+            renderRaceButtons();
+            renderClassButtons();
+            renderStatsDisplay();
+            updateRollStatsButtonState();
+            updateGenerateDescriptionButtonState();
+
+            document.getElementById('character-name-input').addEventListener('input', (e) => {
+                characterCreatorState.name = e.target.value;
+                updateGenerateDescriptionButtonState();
+            });
+
+            document.querySelectorAll('input[name="gender"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    characterCreatorState.gender = e.target.value;
+                    updateGenerateDescriptionButtonState();
+                });
+            });
+
+            document.getElementById('roll-stats-button').addEventListener('click', () => {
+                if (!characterCreatorState.name.trim() || !characterCreatorState.gender || !characterCreatorState.raceKey || !characterCreatorState.classKey) {
+                    updateCreatorMessage('Please enter a name, select gender, race, and class first!', 'red');
+                    return;
+                }
+                characterCreatorState.isRolling = true;
+                updateRollStatsButtonState();
+                updateCreatorMessage('Rolling your stats...');
+
+                setTimeout(() => {
+                    const rolled = {
+                        strength: rollStat(),
+                        intelligence: rollStat(),
+                        dexterity: rollStat(),
+                        charisma: rollStat(),
+                        luck: rollStat(),
+                        durability: rollStat(), // Updated stat
+                    };
+
+                    const raceMods = races[characterCreatorState.raceKey]?.modifiers || {};
+                    for (const stat in raceMods) {
+                        rolled[stat] = Math.min(20, Math.max(0, rolled[stat] + raceMods[stat]));
+                    }
+
+                    const classMods = classes[characterCreatorState.classKey]?.modifiers || {};
+                    for (const stat in classMods) {
+                        rolled[stat] = Math.min(20, Math.max(0, rolled[stat] + classMods[stat]));
+                    }
+
+                    characterCreatorState.stats = rolled;
+                    characterCreatorState.isRolling = false;
+                    renderStatsDisplay();
+                    updateRollStatsButtonState();
+                    updateCreatorMessage('Stats rolled! Now conjure your character description.');
+                }, 1000);
+            });
+
+            document.getElementById('generate-description-button').addEventListener('click', async () => {
+                if (!characterCreatorState.name.trim() || !characterCreatorState.gender || !characterCreatorState.raceKey || !characterCreatorState.classKey || Object.values(characterCreatorState.stats).some(s => s === 0)) {
+                    updateCreatorMessage('Please enter a name, select gender, race, class, and roll your stats first!', 'red');
+                    return;
+                }
+
+                characterCreatorState.isGeneratingDescription = true;
+                updateGenerateDescriptionButtonState();
+                updateCreatorMessage('HellSpinner is crafting your character\'s tale...');
+
+                const prompt = `Generate a detailed and creative character description for a medieval fantasy RPG named HellHunters. The character's name is ${characterCreatorState.name}, they are ${characterCreatorState.gender}, a ${races[characterCreatorState.raceKey].name} ${classes[characterCreatorState.classKey].name} with these stats: Strength ${characterCreatorState.stats.strength}, Intelligence ${characterCreatorState.stats.intelligence}, Dexterity ${characterCreatorState.stats.dexterity}, Charisma ${characterCreatorState.stats.charisma}, Luck ${characterCreatorState.stats.luck}, Durability ${characterCreatorState.stats.durability}.
+                Include how their name, gender, race, class, and stats influence their appearance, personality, and abilities in the world of Atheria, which is under threat from Hell. Highlight any unique racial bonuses or class penalties based on these attributes. Make it a maximum of 2 paragraphs long.`;
+
+                try {
+                    const chatPayload = [{ role: "user", parts: [{ text: prompt }] }];
+                    const payload = {
+                        contents: chatPayload,
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    narrative: { type: "STRING" },
+                                    healthChange: { type: "NUMBER", nullable: true },
+                                    creditsChange: { type: "NUMBER", nullable: true },
+                                    xpChange: { type: "NUMBER", nullable: true },
+                                    statBonus: {
+                                        type: "OBJECT",
+                                        properties: { stat: { type: "STRING", enum: ["strength", "intelligence", "dexterity", "charisma", "luck", "durability"] }, amount: { type: "NUMBER" } },
+                                        nullable: true
+                                    },
+                                    notableMomentsSummary: { type: "STRING", nullable: true },
+                                    locations: { type: "ARRAY", items: { type: "STRING" } },
+                                    people: { type: "ARRAY", items: { type: "STRING" } },
+                                    events: { type: "ARRAY", items: { type: "STRING" } },
+                                },
+                                required: ["narrative", "locations", "people", "events"]
+                            }
+                        }
+                    };
+
+                    // Log the API URL being used
+                    console.log("Attempting to call API at:", API_URL);
+
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // Log the raw response status
+                    console.log("API Response Status:", response.status);
+
+                    const result = await response.json();
+
+                    // Log the full result for inspection
+                    console.log("Full API Response:", result);
+
+                    if (response.ok) { // Check if the HTTP status is OK (2xx)
+                        if (result.candidates && result.candidates.length > 0 &&
+                            result.candidates[0].content && result.candidates[0].content.parts &&
+                            result.candidates[0].content.parts.length > 0) {
+                            const jsonText = result.candidates[0].content.parts[0].text;
+                            const parsedResponse = JSON.parse(jsonText);
+
+                            // Ensure narrative is extracted, default to a message if empty
+                            characterCreatorState.description = parsedResponse.narrative || "The HellSpinner could not craft a detailed tale based on your input. Try adjusting your character choices or input.";
+                            document.getElementById('character-description-display').textContent = characterCreatorState.description;
+                            updateCreatorMessage('Character tale conjured!');
+                        } else {
+                            const errorMessage = 'Failed to conjure tale: No content or unexpected API response structure from AI. Check console for "Full API Response:".';
+                            updateMessage(errorMessage, 'red');
+                            console.error(errorMessage, result);
+                        }
+                    } else {
+                        const errorData = result.error ? result.error.message : JSON.stringify(result);
+                        const errorMessage = `Failed to conjure tale: API Error (${response.status} ${response.statusText}): ${errorData}. Check console for "Full API Response:".`;
+                        updateMessage(errorMessage, 'red');
+                        console.error(errorMessage, result);
+                    }
+                } catch (error) {
+                    const errorMessage = `A network or parsing error occurred during tale conjuration: ${error.message}. This might be due to CORS, an invalid URL, or a network issue. Check console for details.`;
+                    updateMessage(errorMessage, 'red');
+                    console.error("Fetch error during description generation:", error);
+                } finally {
+                    characterCreatorState.isGeneratingDescription = false;
+                    updateGenerateDescriptionButtonState();
+                }
+            });
+
+            document.getElementById('start-game-button').addEventListener('click', () => {
+                if (characterCreatorState.description) {
+                    character = {
+                        name: characterCreatorState.name.trim(),
+                        gender: characterCreatorState.gender,
+                        race: characterCreatorState.raceKey,
+                        className: characterCreatorState.classKey,
+                        stats: { ...characterCreatorState.stats }, // Deep copy stats
+                        description: characterCreatorState.description,
+                        health: 100, // Starting health
+                        credits: 500, // Starting credits
+                        xp: 0, // Starting XP
+                    };
+                    currentScreen = 'game';
+                    renderGameScreen();
+                    saveGameState(); // Call mock save
+                } else {
+                    updateCreatorMessage('Please conjure your character description before descending into Atheria!', 'red');
+                }
+            });
+        }
+
+        // --- Game Screen ---
+
+        function renderGameScreen() {
+            const gameContent = document.getElementById('game-content');
+            gameContent.innerHTML = `
+                <div class="w-full max-w-5xl h-[80vh] flex flex-col md:flex-row bg-gray-800/70 backdrop-blur-sm rounded-xl shadow-neon border-2 border-red-700 animate-fade-in">
+                    <!-- Character Info Sidebar -->
+                    <div class="w-full md:w-1/4 p-4 border-b-2 md:border-b-0 md:border-r-2 border-red-600 bg-gray-900/50 flex flex-col">
+                        <h3 class="text-xl font-orbitron text-red-400 mb-4 border-b border-gray-700 pb-2">Hunter's Journal</h3>
+                        <div id="character-profile-details" class="text-xs text-gray-300 flex-1 overflow-y-auto custom-scrollbar">
+                            <!-- Character details injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Game History and Input -->
+                    <div class="w-full md:w-3/4 flex flex-col p-4">
+                        <h3 class="text-2xl font-orbitron text-red-400 mb-4 text-center border-b border-gray-700 pb-2">HellSpinner's Narrative</h3>
+                        <!-- Warning message for no persistence -->
+                        <div class="bg-red-900/50 text-red-200 border border-red-700 p-2 rounded-md mb-4 text-sm text-center">
+                            <b>WARNING:</b> This game does not save your progress. All data will be lost if you close or refresh the page.
+                        </div>
+                        <div id="chat-history" class="flex-1 overflow-y-auto p-2 rounded-md bg-gray-900/50 border border-gray-700 custom-scrollbar mb-4">
+                            <!-- Game history messages injected here -->
+                        </div>
+                        <div id="game-message" class="bg-yellow-900/50 text-yellow-200 border border-yellow-700 p-2 rounded-md mb-2 text-sm text-center" style="display: none;">
+                            <!-- Dynamic messages like "listening..." or errors -->
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="game-input"
+                                class="flex-1 p-3 rounded-lg bg-gray-900 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-400"
+                                placeholder="Whisper your command (!COMMANDS for help)...">
+                            <button id="send-input-button"
+                                class="px-6 py-3 bg-gradient-to-r from-red-600 to-red-900 text-white font-bold rounded-lg shadow-md hover:from-red-700 hover:to-red-950 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Send
+                            </button>
+                            <button id="voice-input-button"
+                                class="px-6 py-3 font-bold rounded-lg shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600">
+                                Voice Input
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setupGameScreenListeners();
+            updateCharacterProfileDisplay();
+            updateChatHistoryDisplay();
+            // Initial greeting from HellSpinner if history is empty
+            if (gameHistory.length === 0 && character) {
+                const initialNarrative = `Welcome, ${character.name}, to Atheria, a land forged in ancient magic and constantly battling the darkness spilling from the Grand Gates. Your hunt begins now. What is your first move, brave hunter?`;
+                gameHistory.push({ type: 'narrative', text: initialNarrative });
+                updateChatHistoryDisplay();
+            }
+        }
+
+        function updateCharacterProfileDisplay() {
+            const profileDetails = document.getElementById('character-profile-details');
+            if (character && profileDetails) {
+                profileDetails.innerHTML = `
+                    <p><span class="font-bold text-white">Name:</span> ${character.name}</p>
+                    <p><span class="font-bold text-white">Gender:</span> ${character.gender}</p>
+                    <p><span class="font-bold text-white">Race:</span> ${races[character.race]?.name}</p>
+                    <p><span class="font-bold text-white">Class:</span> ${classes[character.className]?.name}</p>
+                    <div class="mt-4">
+                        <p class="font-bold text-white">Health:</p>
+                        <div class="w-full bg-red-900 rounded-full h-2.5">
+                            <div class="bg-red-500 h-2.5 rounded-full" style="width: ${character.health}%"></div>
+                        </div>
+                        <span class="text-white text-xs">${character.health}/100</span>
+                    </div>
+                    <p class="mt-2"><span class="font-bold text-white">Credits:</span> ${character.credits}</p>
+                    <p class="mt-2"><span class="font-bold text-white">XP:</span> ${character.xp}</p>
+                    <div class="mt-4">
+                        <p class="font-bold text-white">Stats:</p>
+                        <ul class="list-disc list-inside ml-2">
+                            ${Object.entries(character.stats).map(([statName, value]) => `
+                                <li><span class="font-semibold text-red-300">${statName.charAt(0).toUpperCase() + statName.slice(1)}:</span> ${value}</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                    <div class="mt-4">
+                        <p class="font-bold text-white">Description:</p>
+                        <p class="text-xs italic text-gray-400 max-h-40 overflow-y-auto custom-scrollbar">${character.description}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function updateChatHistoryDisplay(isTyping = false) {
+            const chatHistoryElement = document.getElementById('chat-history');
+            if (chatHistoryElement) {
+                chatHistoryElement.innerHTML = gameHistory.map((entry, index) => `
+                    <div class="mb-2 p-2 rounded-md ${entry.type === 'input' ? 'bg-red-900/30 text-red-200 self-end ml-auto' : 'bg-gray-900/30 text-gray-200 self-start mr-auto'} max-w-[90%] break-words">
+                        <span class="font-bold">${entry.type === 'input' ? 'Hunter: ' : 'HellSpinner: '}</span>
+                        ${entry.text}
+                    </div>
+                `).join('');
+
+                if (isTyping) {
+                    chatHistoryElement.innerHTML += `
+                        <div class="mb-2 p-2 rounded-md bg-gray-900/30 text-gray-200 self-start mr-auto max-w-[90%]">
+                            <span class="font-bold">HellSpinner: </span>
+                            <span class="animate-pulse">...</span>
+                        </div>
+                    `;
+                }
+                scrollToBottom();
+            }
+        }
+
+        function setGameInputDisabled(disabled) {
+            document.getElementById('game-input').disabled = disabled;
+            document.getElementById('send-input-button').disabled = disabled;
+            document.getElementById('voice-input-button').disabled = disabled;
+            if (disabled) {
+                document.getElementById('send-input-button').classList.add('opacity-50', 'cursor-not-allowed');
+                document.getElementById('voice-input-button').classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                document.getElementById('send-input-button').classList.remove('opacity-50', 'cursor-not-allowed');
+                document.getElementById('voice-input-button').classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        async function handleRestartGame() {
+            updateMessage('Initiating ritual of rebirth... all memories fade...');
+            setGameInputDisabled(true);
+
+            // Reset all local states
+            character = null;
+            gameHistory = [];
+            importantLocations = [];
+            importantPeople = [];
+            importantEvents = [];
+            currentScreen = 'characterCreator';
+
+            setTimeout(() => {
+                renderCharacterCreator();
+                updateMessage('The cycle begins anew. Welcome back to the character creator, hunter.');
+                setGameInputDisabled(false); // Enable input for character creator
+            }, 1500);
+        }
+
+        function handleCopyLog() {
+            const logText = gameHistory.map(entry => {
+                const prefix = entry.type === 'input' ? 'Hunter: ' : 'HellSpinner: ';
+                return prefix + entry.text;
+            }).join('\n');
+
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = logText;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+
+            try {
+                document.execCommand('copy');
+                updateMessage('Gameplay log copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                updateMessage('Failed to copy log. Your browser may not support direct clipboard access.', 'red');
+            } finally {
+                document.body.removeChild(tempTextArea);
+            }
+        }
+
+        async function sendToHellSpinner(userCommand) {
+            setGameInputDisabled(true); // Disable input while AI is typing
+            updateMessage('HellSpinner consults the ancient texts...');
+            updateChatHistoryDisplay(true); // Show typing indicator
+
+            const newHistory = [...gameHistory, { type: 'input', text: userCommand }];
+            gameHistory = newHistory; // Update global state
+            updateChatHistoryDisplay(true); // Update with user input and typing indicator
+            saveGameState(); // Mock save
+
+            // Handle game commands
+            const lowerCaseCommand = userCommand.toLowerCase().trim();
+            if (lowerCaseCommand === '!restart') {
+                await handleRestartGame();
+                return;
+            } else if (lowerCaseCommand === '!locales') { // Renamed from !locations
+                showLocationsModalFunc();
+                updateMessage('');
+                setGameInputDisabled(false);
+                updateChatHistoryDisplay(false); // Hide typing indicator
+                return;
+            } else if (lowerCaseCommand === '!people') {
+                showPeopleModalFunc();
+                updateMessage('');
+                setGameInputDisabled(false);
+                updateChatHistoryDisplay(false);
+                return;
+            } else if (lowerCaseCommand === '!commands') {
+                showCommandsModalFunc();
+                updateMessage('');
+                setGameInputDisabled(false);
+                updateChatHistoryDisplay(false);
+                return;
+            } else if (lowerCaseCommand === '!copylog') {
+                handleCopyLog();
+                updateMessage('Gameplay log copied to clipboard!');
+                setGameInputDisabled(false);
+                updateChatHistoryDisplay(false);
+                return;
+            } else if (lowerCaseCommand === '!lore') {
+                showLoreModalFunc();
+                updateMessage('');
+                setGameInputDisabled(false);
+                updateChatHistoryDisplay(false);
+                return;
+            } else if (lowerCaseCommand === '!microphonehelp') {
+                showMicrophoneHelpModalFunc();
+                updateMessage('');
+                setGameInputDisabled(false);
+                updateChatHistoryDisplay(false);
+                return;
+            }
+
+            // If character health is 0, only allow !RESTART command
+            if (character && character.health <= 0) {
+                updateMessage("You are defeated. Only the '!RESTART' command will cleanse your spirit and begin anew.", 'red');
+                setGameInputDisabled(false);
+                updateChatHistoryDisplay(false);
+                return;
+            }
+
+            // =================================================================================================================
+            // AI API call logic (active now)
+            // The API_KEY is expected to be provided by the Canvas environment or explicitly by the user for external hosting.
+            // =================================================================================================================
+
+
+            const prompt = `You are the HellSpinner, the Game Master for a grim medieval fantasy RPG named HellHunters, set in the world of Atheria, constantly threatened by the forces of Hell. The player character's name is ${character.name}, they are ${character.gender}, a ${races[character.race]?.name} ${classes[character.className]?.name} with these stats: Strength ${character.stats.strength}, Intelligence ${character.stats.intelligence}, Dexterity ${character.stats.dexterity}, Charisma ${character.stats.charisma}, Luck ${character.stats.luck}, Durability ${character.stats.durability}.
+            Current Health: ${character.health}, Current Credits: ${character.credits}, Current XP: ${character.xp}.
+            Here is the game history so far:
+            ${gameHistory.map(entry => `${entry.type === 'input' ? 'Hunter: ' : 'HellSpinner: '}${entry.text}`).join('\n')}
+            Current important locations: ${importantLocations.join(', ') || 'None'}
+            Current important people: ${importantPeople.join(', ') || 'None'}
+            Current important events: ${importantEvents.join(', ') || 'None'}
+
+            The player's command is: '${userCommand}'
+
+            Based on the character's abilities, current stats, health, credits, XP, and the game history, narrate the outcome and evolve the story. Your response MUST be a JSON object with the following structure:
+            {
+            "narrative": "...", // The main story narration for the player
+            "healthChange": "...", // OPTIONAL: Number representing change in health (e.g., -10, +5). Omit if no change.
+            "creditsChange": "...", // OPTIONAL: Number representing change in credits (e.g., +100, -50). Omit if no change.
+            "xpChange": "...", // OPTIONAL: Number representing XP gained (e.g., +25). Omit if no change.
+            "statBonus": { // OPTIONAL: Object if a stat increased. Omit if no stat bonus.
+                "stat": "strength|intelligence|dexterity|charisma|luck|durability", // Updated stat list
+                "amount": 1
+            },
+            "notableMomentsSummary": "...", // OPTIONAL: A ONE PARAGRAPH summary of notable moments if player health drops to 0. Only provide if health becomes 0.
+            "locations": ["...", "..."], // Updated list of important locations
+            "people": ["...", "..."], // Updated list of important people
+            "events": ["...", "..."] // Updated list of important events
+            }
+            Maintain persistence for locations, people, and events. Add new ones if they become relevant, remove old ones if they are no longer important to the story. Keep the lists concise and only include truly *important* elements. Ensure the narrative is engaging and reactive to the player's choices and character's stats. If the player asks about their character, provide relevant details from their description or stats.
+            If health drops to 0 or below, the narrative should reflect death, and the 'notableMomentsSummary' should be provided.
+            `;
+
+            let deathSummary = null;
+
+            try {
+                const chatPayload = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = {
+                    contents: chatPayload,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                narrative: { type: "STRING" },
+                                healthChange: { type: "NUMBER", nullable: true },
+                                creditsChange: { type: "NUMBER", nullable: true },
+                                xpChange: { type: "NUMBER", nullable: true },
+                                statBonus: {
+                                    type: "OBJECT",
+                                    properties: { stat: { type: "STRING", enum: ["strength", "intelligence", "dexterity", "charisma", "luck", "durability"] }, amount: { type: "NUMBER" } },
+                                    nullable: true
+                                },
+                                notableMomentsSummary: { type: "STRING", nullable: true },
+                                locations: { type: "ARRAY", items: { type: "STRING" } },
+                                people: { type: "ARRAY", items: { type: "STRING" } },
+                                events: { type: "ARRAY", items: { type: "STRING" } },
+                            },
+                            required: ["narrative", "locations", "people", "events"]
+                        }
+                    }
+                };
+
+                // Log the API URL being used
+                console.log("Attempting to call API at:", API_URL);
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // Log the raw response status
+                console.log("API Response Status:", response.status);
+
+                const result = await response.json();
+
+                // Log the full result for inspection
+                console.log("Full API Response:", result);
+
+                if (response.ok) { // Check if the HTTP status is OK (2xx)
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const jsonText = result.candidates[0].content.parts[0].text;
+                        const parsedResponse = JSON.parse(jsonText);
+
+                        // Ensure narrative is extracted, default to a message if empty
+                        const hellSpinnerNarrative = parsedResponse.narrative || "The HellSpinner could not craft a detailed tale based on your input. Try adjusting your command.";
+                        gameHistory.push({ type: 'narrative', text: hellSpinnerNarrative });
+
+                        // Apply health, credits, XP changes
+                        if (parsedResponse.healthChange !== undefined) character.health = Math.max(0, character.health + parsedResponse.healthChange);
+                        if (parsedResponse.creditsChange !== undefined) character.credits = Math.max(0, character.credits + parsedResponse.creditsChange);
+                        if (parsedResponse.xpChange !== undefined) character.xp = Math.max(0, character.xp + parsedResponse.xpChange);
+
+                        // Handle stat bonus
+                        if (parsedResponse.statBonus && character.stats[parsedResponse.statBonus.stat] !== undefined) {
+                            const currentStatValue = character.stats[parsedResponse.statBonus.stat];
+                            if (currentStatValue < 20) {
+                                character.stats = {
+                                    ...character.stats,
+                                    [parsedResponse.statBonus.stat]: Math.min(20, currentStatValue + parsedResponse.statBonus.amount)
+                                };
+                                updateMessage(`HellSpinner blesses you with a +${parsedResponse.statBonus.amount} bonus to ${parsedResponse.statBonus.stat.charAt(0).toUpperCase() + parsedResponse.statBonus.stat.slice(1)}!`);
+                            }
+                        }
+                        
+                        // Check for character death
+                        if (character.health <= 0) {
+                            character.health = 0; // Ensure health doesn't go negative in display
+                            deathSummary = parsedResponse.notableMomentsSummary || "Your journey ends here. You fought bravely against the darkness."; // Ensure summary exists
+                            gameHistory.push({ type: 'narrative', text: "--- JOURNEY ENDS ---" });
+                            gameHistory.push({ type: 'narrative', text: "Notable Moments: " + deathSummary });
+                            updateMessage("Journey Ended: " + deathSummary + "\nWhisper '!RESTART' to begin a new hunt.", 'red');
+                            setGameInputDisabled(true); // Disable input on death
+                        }
+
+                        importantLocations = parsedResponse.locations || importantLocations;
+                        importantPeople = parsedResponse.people || importantPeople;
+                        importantEvents = parsedResponse.events || importantEvents;
+
+                        updateCharacterProfileDisplay();
+                        updateChatHistoryDisplay(false); // Hide typing indicator
+                        saveGameState();
+
+                    } else {
+                        const errorMessage = 'Failed to conjure tale: No content or unexpected API response structure from AI. Check console for "Full API Response:".';
+                        updateMessage(errorMessage, 'red');
+                        console.error(errorMessage, result);
+                    }
+                } else {
+                    const errorData = result.error ? result.error.message : JSON.stringify(result);
+                    const errorMessage = `Failed to conjure tale: API Error (${response.status} ${response.statusText}): ${errorData}. Check console for "Full API Response:".`;
+                    updateMessage(errorMessage, 'red');
+                    console.error(errorMessage, result);
+                }
+            } catch (error) {
+                const errorMessage = `A network or parsing error occurred during narrative conjuration: ${error.message}. This might be due to CORS, an invalid URL, or a network issue. Check console for details.`;
+                updateMessage(errorMessage, 'red');
+                console.error("Fetch error during narrative generation:", error);
+            } finally {
+                // Only clear message if it's not a Game Over message
+                if (character && character.health > 0) {
+                    updateMessage('');
+                }
+                setGameInputDisabled(false); // Re-enable input if not game over
+            }
+        }
+
+        function handleSendInput() {
+            const inputElement = document.getElementById('game-input');
+            const currentInput = inputElement.value.trim();
+            if (currentInput) {
+                sendToHellSpinner(currentInput);
+                inputElement.value = '';
+            }
+        }
+
+        function toggleVoiceInput() {
+            const voiceButton = document.getElementById('voice-input-button');
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function setupGameScreenListeners() {
+            const gameInput = document.getElementById('game-input');
+            const sendButton = document.getElementById('send-input-button');
+            const voiceButton = document.getElementById('voice-input-button');
+
+            gameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleSendInput();
+                }
+            });
+            sendButton.addEventListener('click', handleSendInput);
+            voiceButton.addEventListener('click', toggleVoiceInput);
+
+            // Initialize SpeechRecognition
+            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false; // Only listen for one phrase at a time
+                recognition.interimResults = false; // Only return final results
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    updateMessage('Listening for your whispers...');
+                    voiceButton.classList.remove('bg-gradient-to-r', 'from-orange-500', 'to-yellow-500', 'hover:from-orange-600', 'hover:to-yellow-600');
+                    voiceButton.classList.add('bg-red-600', 'hover:bg-red-700');
+                    voiceButton.textContent = 'Stop Listening';
+                    setGameInputDisabled(true); // Disable text input while listening
+                    gameInput.placeholder = 'Whispering...';
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    gameInput.value = transcript;
+                    updateMessage(`Heard your whisper: "${transcript}"`);
+                    isListening = false;
+                    voiceButton.classList.add('bg-gradient-to-r', 'from-orange-500', 'to-yellow-500', 'hover:from-orange-600', 'hover:to-yellow-600');
+                    voiceButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    voiceButton.textContent = 'Voice Input';
+                    setGameInputDisabled(false);
+                    gameInput.placeholder = 'Whisper your command (!COMMANDS for help)...';
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    if (event.error === 'not-allowed') {
+                        updateMessage('Microphone access denied. Please enable microphone permissions in your browser settings to use voice input. The page may need to be reloaded after changing permissions.', 'red');
+                    } else {
+                        updateMessage(`Voice input error: ${event.error}`, 'red');
+                    }
+                    isListening = false;
+                    voiceButton.classList.add('bg-gradient-to-r', 'from-orange-500', 'to-yellow-500', 'hover:from-orange-600', 'hover:to-yellow-600');
+                    voiceButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    voiceButton.textContent = 'Voice Input';
+                    setGameInputDisabled(false);
+                    gameInput.placeholder = 'Whisper your command (!COMMANDS for help)...';
+                };
+
+                recognition.onend = () => {
+                    isListening = false;
+                    // Clear message if it's a generic "listening" message
+                    const currentMessage = document.getElementById('game-message').textContent;
+                    if (currentMessage === 'Listening for your whispers...') {
+                        updateMessage('');
+                    }
+                    voiceButton.classList.add('bg-gradient-to-r', 'from-orange-500', 'to-yellow-500', 'hover:from-orange-600', 'hover:to-yellow-600');
+                    voiceButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    voiceButton.textContent = 'Voice Input';
+                    setGameInputDisabled(false);
+                    gameInput.placeholder = 'Whisper your command (!COMMANDS for help)...';
+                };
+            } else {
+                voiceButton.disabled = true;
+                voiceButton.textContent = 'Voice Not Supported';
+                updateMessage('Speech recognition not supported in this browser. Voice input is disabled.', 'red');
+            }
+        }
+
+        // --- Initial Application Setup ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Fill background grid with animated divs
+            const gridContainer = document.querySelector('.grid.grid-cols-10');
+            if (gridContainer) {
+                const numDivs = 20 * 10; // 20 rows, 10-20 cols as per CSS
+                gridContainer.innerHTML = Array(numDivs).fill().map((_, i) =>
+                    `<div class="bg-gradient-to-br from-red-800 to-black animate-pulse-grid" style="animation-delay: ${i * 0.05}s;"></div>`
+                ).join('');
+            }
+
+            // Start the character creator
+            renderCharacterCreator();
+        });
+
+    </script>
+</body>
+</html>
