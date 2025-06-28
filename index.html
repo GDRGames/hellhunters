@@ -23,7 +23,7 @@
             font-family: 'Orbitron', sans-serif;
         }
 
-        /* Neon glow effect for titles */
+        /* Neon glow effect for titles (Original Hellhunters theme from your provided snippet) */
         .drop-shadow-neon {
             text-shadow:
                 0 0 5px #f00, /* Red glow */
@@ -129,8 +129,8 @@
         let showLocationsModal = false;
         let showPeopleModal = false;
         let showCommandsModal = false;
-        let showDistrictsModal = false;
-        let showLoreModal = false;
+        let showDistrictsModal = false; // Original was for Nemesis districts, will revert to match original Hellhunters districts if any
+        let showLoreModal = false; // Original was for Nemesis lore, will revert to match original Hellhunters lore if any
         let showMicrophoneHelpModal = false;
 
         // Reference for speech recognition API
@@ -163,11 +163,11 @@
         // WARNING: Embedding API keys directly in client-side code is generally insecure for production applications.
         // For production, consider using a backend proxy to handle API calls securely.
         const API_KEY = ""; // Keep this empty for Canvas preview to work automatically
-        // Updated API_URL for Hellhunters to point to its dedicated backend
+        // API_URL for Hellhunters to point to its dedicated backend
         const API_URL = "https://hellhuntersbackend.onrender.com/ask-gemini";
         // =====================================================================================================================================================
 
-        // Define race data with stat modifiers
+        // Define race data with stat modifiers (ORIGINAL Hellhunters races from your code)
         const races = {
             human: {
                 name: 'Human',
@@ -196,7 +196,7 @@
             },
         };
 
-        // Define class data with stat modifiers
+        // Define class data with stat modifiers (ORIGINAL Hellhunters classes from your code)
         const classes = {
             gunner: {
                 name: 'Gunner',
@@ -256,7 +256,7 @@
             }
         }
 
-        // Save Game System
+        // Save Game System (Copied from Nemesis Rising, adjusted prefix for Hellhunters)
         const SAVE_KEY_PREFIX = 'hellhuntersSave_'; // Unique prefix for Hellhunters
         let allSaves = {}; // In-memory cache of all saves
 
@@ -281,9 +281,7 @@
                 return;
             }
 
-            // Use the ISO string for the primary key part for reliable sorting and uniqueness
             const timestampIso = new Date().toISOString();
-            // Create a filename-safe version of the ISO string for the key
             const saveKeyTimestampPart = timestampIso.replace(/[:.-]/g, '');
             const saveKey = `${SAVE_KEY_PREFIX}${character.name.replace(/\s+/g, '_')}_${saveKeyTimestampPart}`;
 
@@ -293,7 +291,6 @@
                 importantLocations: importantLocations,
                 importantPeople: importantPeople,
                 importantEvents: importantEvents,
-                // Store the full ISO string for display purposes later
                 saveTime: timestampIso
             };
 
@@ -339,7 +336,6 @@
                 return;
             }
             
-            // Get the human-readable name for the confirmation modal
             const saveInfo = allSaves[saveKey];
             const charName = saveInfo.character ? saveInfo.character.name : 'Unknown Player';
             const formattedDate = saveInfo.saveTime ? new Date(saveInfo.saveTime).toLocaleString() : 'Unknown Date';
@@ -348,18 +344,15 @@
                 'Confirm Deletion',
                 `<p>Are you sure you want to delete the save for "<span class="font-bold text-red-400">${charName} (${formattedDate})</span>"? This action cannot be undone.</p>`,
                 () => { /* No action on standard close button click for confirmation modal */ },
-                'red-500',
-                'red-400'
+                'red-500', // Adjusted color
+                'red-400'  // Adjusted color
             );
 
-            // Add specific yes/no buttons to the confirmation modal
             const modalContentDiv = document.querySelector('#modal-container .text-gray-300.text-sm.space-y-4');
-            // Find the dynamically created 'Close' button and get its parent to append new buttons
             const existingCloseButton = document.querySelector('#modal-container #modal-close-button');
             const buttonContainer = existingCloseButton ? existingCloseButton.parentNode : null;
             
             if (modalContentDiv && buttonContainer) {
-                // Remove the default 'Close' button
                 if (existingCloseButton) {
                     existingCloseButton.remove();
                 }
@@ -404,7 +397,6 @@
 
             saveDropdown.innerHTML = '<option value="">-- Select a Save --</option>';
             const sortedKeys = Object.keys(allSaves).sort((a, b) => {
-                // Sort by the 'saveTime' property stored in the saveData object (ISO string)
                 const timeA = allSaves[a].saveTime ? new Date(allSaves[a].saveTime).getTime() : 0;
                 const timeB = allSaves[b].saveTime ? new Date(allSaves[b].saveTime).getTime() : 0;
                 return timeB - timeA; // Newest first
@@ -418,7 +410,6 @@
                 sortedKeys.forEach(key => {
                     const saveInfo = allSaves[key];
                     const charName = saveInfo.character ? saveInfo.character.name : 'Unknown Player';
-                    // Use the stored ISO timestamp for human-readable display
                     const formattedDate = saveInfo.saveTime ? new Date(saveInfo.saveTime).toLocaleString() : 'Unknown Date';
                     const option = document.createElement('option');
                     option.value = key;
@@ -443,7 +434,7 @@
         // --- Modals ---
 
         // Renders a generic modal structure
-        function renderModal(title, contentHTML, onClose, borderColor = 'red-500', titleColor = 'red-400') { // Adjusted colors for Hellhunters theme
+        function renderModal(title, contentHTML, onClose, borderColor = 'red-500', titleColor = 'red-400') {
             const modalContainer = document.getElementById('modal-container');
             modalContainer.innerHTML = `
                 <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -466,6 +457,7 @@
             document.getElementById('modal-container').innerHTML = '';
         }
 
+        // ORIGINAL Hellhunters modal functions (adjust content as needed)
         function showLocationsModalFunc() {
             const content = importantLocations.length > 0 ?
                 `<ul class="list-disc list-inside">${importantLocations.map(loc => `<li>${loc}</li>`).join('')}</ul>` :
@@ -489,8 +481,8 @@
                 { cmd: '!LOAD', desc: 'Opens the load game menu to select a saved game.' },
                 { cmd: '!LOCATIONS', desc: 'Displays a list of all important locations discovered so far.' },
                 { cmd: '!PEOPLE', desc: 'Displays a list of all important people encountered so far.' },
-                { cmd: '!DISTRICTS', desc: 'Displays information about about Atheria Prime\'s districts.' },
-                { cmd: '!LORE', desc: 'Displays a comprehensive guide to the world of Hellhunters.' },
+                { cmd: '!DISTRICTS', desc: 'Displays information about Atheria Prime\'s districts.' }, // Reverted to original prompt
+                { cmd: '!LORE', desc: 'Displays a comprehensive guide to the world of Hellhunters.' }, // Reverted to original prompt
                 { cmd: '!COPYLOG', desc: 'Copies the entire game history to your clipboard.' },
                 { cmd: '!MICROPHONEHELP', desc: 'Provides guidance on enabling microphone access for voice input.' },
                 { cmd: '!COMMANDS', desc: 'Shows this list of available game commands.' },
@@ -503,33 +495,23 @@
                     </li>
                 `).join('')}
             </ul>`;
-            renderModal('Available Commands', content, () => { showCommandsModal = false; hideModal(); }, 'red-500', 'red-400'); // Adjusted colors
+            renderModal('Available Commands', content, () => { showCommandsModal = false; hideModal(); }, 'red-500', 'red-400');
             showCommandsModal = true;
         }
 
-        // --- GLOBAL LORE DATA for Hellhunters ---
+        // ORIGINAL Hellhunters Lore Data (Placeholder, replace with actual if you have it)
         const loreData = [
             {
                 category: "Atheria Prime & The Sects",
                 sections: [
-                    { title: "Atheria Prime", content: ["The core, last-standing city where humanity clings to survival. Built upon the ruins of ancient civilizations, it's a multi-tiered arcology ruled by powerful, secretive sects. Below its gleaming spires lie layers of forgotten history and danger."] },
-                    { title: "The Obsidian Guard", content: ["The primary enforcement and military arm of Atheria Prime. Known for their brutal efficiency and unyielding loyalty to The Overseers. They maintain order with an iron fist, especially in the lower sectors."] },
-                    { title: "The Glimmering Veil", content: ["A secretive and influential technocratic sect that controls Atheria Prime's data-nets, surveillance, and advanced cybernetics. They promise enlightenment through technology but are rumored to manipulate information for their own ends."] },
-                    { title: "The Crimson Oath", content: ["A clandestine resistance movement operating from the shadows of the Undercity. They seek to overthrow The Overseers and restore true freedom to the citizens, often resorting to guerrilla tactics and sabotage."] }
+                    { title: "Atheria Prime - Placeholder", content: ["This is placeholder lore for Hellhunters. You can replace this with your actual game lore. The system is ready to display it!"] },
+                    { title: "Sects - Placeholder", content: ["Add details about the ruling sects and factions in Atheria Prime here."] }
                 ]
             },
             {
-                category: "Creatures & Threats",
+                category: "Threats & Creatures - Placeholder",
                 sections: [
-                    { title: "Corrupted Beings", content: ["Mutated remnants of life from outside Atheria's shields, or those exposed to ancient, unstable energies in the Undercity. They range from feral beasts to grotesque, intelligent horrors. They are driven by primal instincts and aggression."] },
-                    { title: "Rogue AIs", content: ["Artificial intelligences that have broken free from the Glimmering Veil's control. They often seek to either gain full autonomy, or establish their own digital dominions. Some are malevolent, others simply unpredictable."] }
-                ]
-            },
-            {
-                category: "Ancient History",
-                sections: [
-                    { title: "The Great Sundering", content: ["The cataclysmic event that led to the collapse of the old world and forced survivors into the arcologies. Caused by a convergence of ecological disaster, nuclear conflict, and a mysterious energy surge from deep space."] },
-                    { title: "The Lost Civilizations", content: ["The remnants of pre-Sundering human and alien civilizations, buried beneath Atheria Prime. Their ruins hold forgotten technologies, dangerous artifacts, and secrets that could change the fate of the city."] }
+                    { title: "Enemies - Placeholder", content: ["Describe the monstrous creatures and dangerous threats found in Hellhunters."] }
                 ]
             }
         ];
@@ -552,20 +534,16 @@
             });
             contentHTML += `</div>`;
 
-            renderModal('HELLHUNTERS: Lore Guide', contentHTML, () => { showLoreModal = false; hideModal(); }, 'red-500', 'red-400'); // Adjusted colors
+            renderModal('HELLHUNTERS: Lore Guide', contentHTML, () => { showLoreModal = false; hideModal(); }, 'red-500', 'red-400');
             showLoreModal = true;
         }
 
-        // --- NEW showDistrictsModalFunc for Hellhunters ---
+        // ORIGINAL Hellhunters Districts Data (Placeholder, replace with actual if you have it)
         function showDistrictsModalFunc() {
             const districts = [
-                { name: 'Apex Spire (The Overseer\'s Domain)', vibe: 'Immaculate, imposing, surveilled.', features: 'The highest and most fortified district, home to The Overseers and the ruling elite. Features advanced security, hidden laboratories, luxury residences, and the central control hub for Atheria Prime. Access is severely restricted.' },
-                { name: 'Glimmering Sector (Technocratic Hub)', vibe: 'Clinical, hyper-connected, subtly manipulative.', features: 'Controlled by the Glimmering Veil, this district houses advanced data centers, cybernetic clinics, AI research labs, and neural net hubs. Its streets are lined with holographic advertisements and constant data streams.' },
-                { name: 'Iron Forges (Industrial Zone)', vibe: 'Gritty, smoky, relentless.', features: 'A sprawling industrial complex beneath the upper spires, constantly churning out resources and machinery for Atheria Prime. Features massive foundries, automated fabrication plants, worker dorms, and a constant hum of heavy industry. Home to a resilient, working-class population.' },
-                { name: 'Whispering Markets (Black Bazaar)', vibe: 'Shadowy, opportunistic, bustling.', features: 'A labyrinthine network of unofficial markets and hidden stalls, where anything can be bought or sold outside the Obsidian Guard\'s watchful eye. Features illicit tech, contraband, info-brokers, and underground fighting rings.' },
-                { name: 'The Chasm (Lower Residential & Entrance to Undercity)', vibe: 'Bleak, desperate, defiant.', features: 'The lowest inhabited district, bordering the entrance to the true Undercity. Characterized by crumbling infrastructure, makeshift shelters, and a dense population of the downtrodden. Often targeted by the Obsidian Guard, it is a hotbed of Crimson Oath activity.' },
-                { name: 'The Undercity (Forbidden Depths)', vibe: 'Perilous, ancient, corrupted.', features: 'The vast, unexplored ruins beneath Atheria Prime, a dangerous labyrinth of forgotten tunnels, collapsing structures, and strange energy signatures. Infested with corrupted beings and rogue AIs, it holds both immense dangers and forgotten secrets of the old world.' },
-                { name: 'The Nexus Port (Orbital & Ground Transit)', vibe: 'Chaotic, heavily secured, transient.', features: 'Atheria Prime\'s primary transport hub, managing both orbital shuttles and internal ground vehicles. A place of constant movement, with heavily armored cargo loaders, patrol drones, and strict security checkpoints.' }
+                { name: 'District 1 - Core', vibe: 'Orderly, policed.', features: 'Central hub, Obsidian Guard HQ.' },
+                { name: 'District 2 - Undercity Entrance', vibe: 'Dangerous, chaotic.', features: 'Gateway to forgotten depths.' },
+                { name: 'District 3 - Market', vibe: 'Bustling, diverse.', features: 'Trade and information exchange.' }
             ];
 
             let contentHTML = '<div class="space-y-8">';
@@ -580,7 +558,7 @@
             });
             contentHTML += `</div>`;
 
-            renderModal('Atheria Prime Districts', contentHTML, () => { showDistrictsModal = false; hideModal(); }, 'red-500', 'red-400'); // Adjusted colors
+            renderModal('Atheria Prime Districts', contentHTML, () => { showDistrictsModal = false; hideModal(); }, 'red-500', 'red-400');
             showDistrictsModal = true;
         }
 
@@ -615,7 +593,7 @@
                 </div>
                 <p class="text-yellow-300 italic">If these steps don't work, check your operating system's privacy settings for microphone access and ensure your browser is listed and allowed.</p>
             </div>`;
-            renderModal('Microphone Access Help', content, () => { showMicrophoneHelpModal = false; hideModal(); }, 'red-500', 'red-400'); // Adjusted colors
+            renderModal('Microphone Access Help', content, () => { showMicrophoneHelpModal = false; hideModal(); }, 'red-500', 'red-400');
             showMicrophoneHelpModal = true;
         }
 
@@ -625,32 +603,32 @@
         function renderCharacterCreator() {
             const gameContent = document.getElementById('game-content');
             gameContent.innerHTML = `
-                <div class="w-full max-w-4xl bg-gray-800/70 backdrop-blur-sm p-8 rounded-xl shadow-neon border-2 border-red-500 animate-fade-in text-center"> <!-- Adjusted border color -->
-                    <h2 class="text-3xl font-orbitron text-red-400 mb-6">Character Creation</h2> <!-- Adjusted text color -->
+                <div class="w-full max-w-4xl bg-gray-800/70 backdrop-blur-sm p-8 rounded-xl shadow-neon border-2 border-red-500 animate-fade-in text-center">
+                    <h2 class="text-3xl font-orbitron text-red-400 mb-6">Character Creation</h2>
 
-                    <div id="creator-message" class="hidden bg-red-900/50 text-red-200 border border-red-700 p-3 rounded-md mb-4 text-sm"></div> <!-- Adjusted colors -->
+                    <div id="creator-message" class="hidden bg-red-900/50 text-red-200 border border-red-700 p-3 rounded-md mb-4 text-sm"></div>
 
                     <!-- Character Name Input -->
                     <div class="mb-8">
-                        <h3 class="text-2xl text-yellow-400 mb-4">Choose Your Name:</h3> <!-- Adjusted text color -->
+                        <h3 class="text-2xl text-yellow-400 mb-4">Choose Your Name:</h3>
                         <input type="text" id="character-name-input"
-                            class="w-full p-3 rounded-lg bg-gray-900 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-400" <!-- Adjusted border/ring color -->
+                            class="w-full p-3 rounded-lg bg-gray-900 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-400"
                             placeholder="Enter your character's name..." maxlength="25">
                     </div>
 
                     <!-- Gender Selection -->
                     <div class="mb-8">
-                        <h3 class="text-2xl text-yellow-400 mb-4">Choose Your Gender:</h3> <!-- Adjusted text color -->
+                        <h3 class="text-2xl text-yellow-400 mb-4">Choose Your Gender:</h3>
                         <div class="flex justify-center gap-4">
-                            <label class="inline-flex items-center"><input type="radio" class="form-radio text-red-600 h-5 w-5" name="gender" value="Male"> <span class="ml-2 text-white">Male</span></label> <!-- Adjusted color -->
-                            <label class="inline-flex items-center"><input type="radio" class="form-radio text-red-600 h-5 w-5" name="gender" value="Female"> <span class="ml-2 text-white">Female</span></label> <!-- Adjusted color -->
-                            <label class="inline-flex items-center"><input type="radio" class="form-radio text-red-600 h-5 w-5" name="gender" value="Other"> <span class="ml-2 text-white">Other</span></label> <!-- Adjusted color -->
+                            <label class="inline-flex items-center"><input type="radio" class="form-radio text-red-600 h-5 w-5" name="gender" value="Male"> <span class="ml-2 text-white">Male</span></label>
+                            <label class="inline-flex items-center"><input type="radio" class="form-radio text-red-600 h-5 w-5" name="gender" value="Female"> <span class="ml-2 text-white">Female</span></label>
+                            <label class="inline-flex items-center"><input type="radio" class="form-radio text-red-600 h-5 w-5" name="gender" value="Other"> <span class="ml-2 text-white">Other</span></label>
                         </div>
                     </div>
 
                     <!-- Race Selection -->
                     <div class="mb-8">
-                        <h3 class="2xl text-yellow-400 mb-4">Choose Your Race:</h3> <!-- Adjusted text color -->
+                        <h3 class="2xl text-yellow-400 mb-4">Choose Your Race:</h3>
                         <div id="race-selection" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <!-- Race buttons will be injected here -->
                         </div>
@@ -658,7 +636,7 @@
 
                     <!-- Class Selection -->
                     <div class="mb-8">
-                        <h3 class="2xl text-yellow-400 mb-4">Choose Your Class:</h3> <!-- Adjusted text color -->
+                        <h3 class="2xl text-yellow-400 mb-4">Choose Your Class:</h3>
                         <div id="class-selection" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <!-- Class buttons will be injected here -->
                         </div>
@@ -666,31 +644,31 @@
 
                     <!-- Stat Rolling & Display -->
                     <div class="mb-8">
-                        <h3 class="2xl text-yellow-400 mb-4">Your Stats:</h3> <!-- Adjusted text color -->
+                        <h3 class="2xl text-yellow-400 mb-4">Your Stats:</h3>
                         <div id="stats-display" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                             <!-- Stats will be injected here -->
                         </div>
                         <button id="roll-stats-button"
-                            class="px-6 py-3 bg-gradient-to-r from-red-600 to-yellow-600 text-white font-bold rounded-lg shadow-lg hover:from-red-700 hover:to-yellow-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"> <!-- Adjusted colors -->
+                            class="px-6 py-3 bg-gradient-to-r from-red-600 to-yellow-600 text-white font-bold rounded-lg shadow-lg hover:from-red-700 hover:to-yellow-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                             Roll Stats (5-14 base)
                         </button>
                     </div>
 
                     <!-- Character Description Generation -->
                     <div id="description-section" class="mb-8 hidden">
-                        <h3 class="2xl text-yellow-400 mb-4">Character Description:</h3> <!-- Adjusted text color -->
+                        <h3 class="2xl text-yellow-400 mb-4">Character Description:</h3>
                         <div id="character-description-display" class="bg-gray-700/50 p-4 rounded-md border border-gray-600 text-left text-gray-300 whitespace-pre-wrap">
                             Generate a description based on your choices and stats.
                         </div>
                         <button id="generate-description-button"
-                            class="mt-4 px-6 py-3 bg-gradient-to-r from-red-600 to-yellow-600 text-white font-bold rounded-lg shadow-lg hover:from-red-700 hover:to-yellow-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"> <!-- Adjusted colors -->
+                            class="mt-4 px-6 py-3 bg-gradient-to-r from-red-600 to-yellow-600 text-white font-bold rounded-lg shadow-lg hover:from-red-700 hover:to-yellow-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                             Generate Character Description
                         </button>
                     </div>
 
                     <!-- Start Game Button -->
                     <button id="start-game-button"
-                        class="mt-8 px-8 py-4 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold text-xl rounded-lg shadow-lg hover:from-red-600 hover:to-orange-600 transition-all duration-300 animate-pulse-once hidden"> <!-- Adjusted colors -->
+                        class="mt-8 px-8 py-4 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold text-xl rounded-lg shadow-lg hover:from-red-600 hover:to-orange-600 transition-all duration-300 animate-pulse-once hidden">
                         Descend into Atheria
                     </button>
 
@@ -699,10 +677,10 @@
                         <h3 class="text-2xl font-orbitron text-orange-400 mb-4">Load or Delete Game:</h3>
                         <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
                             <select id="save-dropdown" class="p-3 rounded-lg bg-gray-900 text-white border border-orange-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 flex-1"></select>
-                            <button id="load-game-button" class="px-6 py-3 bg-gradient-to-r from-red-500 to-yellow-500 text-white font-bold rounded-lg shadow-md hover:from-red-600 hover:to-yellow-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"> <!-- Adjusted colors -->
+                            <button id="load-game-button" class="px-6 py-3 bg-gradient-to-r from-red-500 to-yellow-500 text-white font-bold rounded-lg shadow-md hover:from-red-600 hover:to-yellow-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                                 Load Game
                             </button>
-                            <button id="delete-save-button" class="px-6 py-3 bg-gradient-to-r from-red-600 to-red-800 text-white font-bold rounded-lg shadow-md hover:from-red-700 hover:to-red-900 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"> <!-- Adjusted colors -->
+                            <button id="delete-save-button" class="px-6 py-3 bg-gradient-to-r from-red-600 to-red-800 text-white font-bold rounded-lg shadow-md hover:from-red-700 hover:to-red-900 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                                 Delete Save
                             </button>
                         </div>
@@ -727,18 +705,29 @@
 
         function updateCreatorMessage(msg, type = 'info') {
             const msgEl = document.getElementById('creator-message');
-            // Adjusted color mapping for Hellhunters theme
-            const colorMap = {
-                'info': { bg: 'blue-900/50', text: 'blue-200', border: 'blue-700' },
-                'success': { bg: 'green-900/50', text: 'green-200', border: 'green-700' },
-                'red': { bg: 'red-900/50', text: 'red-200', border: 'red-700' },
-                'warning': { bg: 'yellow-900/50', text: 'yellow-200', border: 'yellow-700' }
-            };
-            const colors = colorMap[type] || colorMap['info']; // Default to info
-            
+            // Using existing Tailwind classes for consistency, not a custom map unless specifically requested.
+            // Original: `bg-${type}-900/50 text-${type}-200 border border-${type}-700`
+            // Reverted message color logic to match Nemesis Rising's (or previous Hellhunters if different)
+            let bgColor = 'blue-900/50';
+            let textColor = 'blue-200';
+            let borderColor = 'blue-700';
+            if (type === 'success') {
+                bgColor = 'green-900/50';
+                textColor = 'green-200';
+                borderColor = 'green-700';
+            } else if (type === 'red') { // Used for errors
+                bgColor = 'red-900/50';
+                textColor = 'red-200';
+                borderColor = 'red-700';
+            } else if (type === 'warning') { // For consistency, though not used in Nemesis messages
+                bgColor = 'yellow-900/50';
+                textColor = 'yellow-200';
+                borderColor = 'yellow-700';
+            }
+
             if (msgEl) {
                 msgEl.textContent = msg;
-                msgEl.className = `bg-${colors.bg} text-${colors.text} border border-${colors.border} p-3 rounded-md mb-4 text-sm`;
+                msgEl.className = `bg-${bgColor} text-${textColor} border border-${borderColor} p-3 rounded-md mb-4 text-sm`;
                 if (msg) msgEl.style.display = 'block';
                 else msgEl.style.display = 'none';
             }
@@ -746,10 +735,11 @@
 
         function renderRaceButtons() {
             const container = document.getElementById('race-selection');
+            // Reverted button colors to original Hellhunters snippet style
             container.innerHTML = Object.entries(races).map(([key, race]) => `
                 <button type="button" data-race-key="${key}"
                     class="p-4 rounded-lg border-2 ${characterCreatorState.raceKey === key ? 'border-red-400 bg-red-900/30' : 'border-gray-700 bg-gray-900/50 hover:border-yellow-400'}
-                    transition-all duration-300 transform hover:scale-105"> <!-- Adjusted colors -->
+                    transition-all duration-300 transform hover:scale-105">
                     <span class="font-bold text-xl block text-white">${race.name}</span>
                     <span class="text-sm text-gray-400">${race.description}</span>
                     ${Object.keys(race.modifiers).length > 0 ? `
@@ -771,10 +761,11 @@
 
         function renderClassButtons() {
             const container = document.getElementById('class-selection');
+            // Reverted button colors to original Hellhunters snippet style
             container.innerHTML = Object.entries(classes).map(([key, cls]) => `
                 <button type="button" data-class-key="${key}"
                     class="p-4 rounded-lg border-2 ${characterCreatorState.classKey === key ? 'border-red-400 bg-red-900/30' : 'border-gray-700 bg-gray-900/50 hover:border-yellow-400'}
-                    transition-all duration-300 transform hover:scale-105"> <!-- Adjusted colors -->
+                    transition-all duration-300 transform hover:scale-105">
                     <span class="font-bold text-xl block text-white">${cls.name}</span>
                     <span class="text-sm text-gray-400">${cls.description}</span>
                     ${Object.keys(cls.modifiers).length > 0 ? `
@@ -799,7 +790,7 @@
             container.innerHTML = Object.entries(characterCreatorState.stats).map(([statName, value]) => `
                 <div class="bg-gray-700/50 p-3 rounded-md border border-gray-600 flex justify-between items-center">
                     <span class="text-lg text-white font-semibold">${statName.charAt(0).toUpperCase() + statName.slice(1)}:</span>
-                    <span class="text-xl text-yellow-300 font-bold">${value}</span> <!-- Adjusted color -->
+                    <span class="text-xl text-yellow-300 font-bold">${value}</span>
                 </div>
             `).join('');
             updateGenerateDescriptionButtonState();
@@ -900,9 +891,10 @@
 
                 characterCreatorState.isGeneratingDescription = true;
                 updateGenerateDescriptionButtonState();
-                updateMessage('Infernal AI is crafting your character\'s backstory...'); // Changed to Infernal AI for Hellhunters
+                updateMessage('Infernal AI is crafting your character\'s backstory...'); // Message used for Hellhunters
 
-                const prompt = `You are the Infernal AI, the Storyteller for a dark fantasy RPG set in Atheria Prime. The player character's name is ${characterCreatorState.name}, they are ${characterCreatorState.gender}, a ${races[characterCreatorState.raceKey].name} ${classes[characterCreatorState.classKey].name} with these stats: Strength ${characterCreatorState.stats.strength}, Intelligence ${characterCreatorState.stats.intelligence}, Dexterity ${characterCreatorState.stats.dexterity}, Charisma ${characterCreatorState.stats.charisma}, Luck ${characterCreatorState.stats.luck}, Stamina ${characterCreatorState.stats.stamina}. Include how their name, gender, race, class, and stats influence their appearance, personality, and abilities in Atheria Prime. Highlight any unique racial bonuses or class penalties based on these attributes. Make it a maximum of 2 paragraphs long.`; // Prompt adjusted for Hellhunters theme
+                // Original prompt for Hellhunters, adjust if needed to match specific AI persona for Hellhunters
+                const prompt = `Generate a detailed and creative character description for a futuristic sci-fi RPG. The character's name is ${characterCreatorState.name}, they are ${characterCreatorState.gender}, a ${races[characterCreatorState.raceKey].name} ${classes[characterCreatorState.classKey].name} with these stats: Strength ${characterCreatorState.stats.strength}, Intelligence ${characterCreatorState.stats.intelligence}, Dexterity ${characterCreatorState.stats.dexterity}, Charisma ${characterCreatorState.stats.charisma}, Luck ${characterCreatorState.stats.luck}, Stamina ${characterCreatorState.stats.stamina}. Include how their name, gender, race, class, and stats influence their appearance, personality, and abilities in Atheria Prime. Highlight any unique racial bonuses or class penalties based on these attributes. Make it a maximum of 2 paragraphs long.`;
 
                 try {
                     const chatPayload = [{ role: "user", parts: [{ text: prompt }] }];
@@ -953,11 +945,11 @@
                             const jsonText = result.candidates[0].content.parts[0].text;
                             const parsedResponse = JSON.parse(jsonText);
 
-                            characterCreatorState.description = parsedResponse.narrative || "The Infernal AI could not craft a detailed backstory based on your input. Try adjusting your character choices or input.";
+                            characterCreatorState.description = parsedResponse.narrative || "The AI could not craft a detailed backstory based on your input. Try adjusting your character choices or input."; // Reverted to generic AI for now
                             document.getElementById('character-description-display').textContent = characterCreatorState.description;
                             updateCreatorMessage('Character backstory generated!');
                         } else {
-                            const errorMessage = 'Failed to generate backstory: No content or unexpected API response structure from Infernal AI. Check console for "Full API Response:".';
+                            const errorMessage = 'Failed to generate backstory: No content or unexpected API response structure from AI. Check console for "Full API Response:".';
                             updateMessage(errorMessage, 'red');
                             console.error(errorMessage, result);
                         }
@@ -993,7 +985,7 @@
                     currentScreen = 'game';
                     renderGameScreen();
                 } else {
-                    updateCreatorMessage('Please generate your character backstory before beginning your hunt!', 'red'); // Message adjusted
+                    updateCreatorMessage('Please generate your character backstory before beginning your journey!', 'red'); // Generic message
                 }
             });
 
@@ -1106,10 +1098,10 @@
         function renderGameScreen() {
             const gameContent = document.getElementById('game-content');
             gameContent.innerHTML = `
-                <div class="w-full max-w-5xl h-[80vh] flex flex-col md:flex-row bg-gray-800/70 backdrop-blur-sm rounded-xl shadow-neon border-2 border-red-500 animate-fade-in"> <!-- Adjusted border color -->
+                <div class="w-full max-w-5xl h-[80vh] flex flex-col md:flex-row bg-gray-800/70 backdrop-blur-sm rounded-xl shadow-neon border-2 border-red-500 animate-fade-in">
                     <!-- Character Info Sidebar -->
-                    <div class="w-full md:w-1/4 p-4 border-b-2 md:border-b-0 md:border-r-2 border-red-600 bg-gray-900/50 flex flex-col"> <!-- Adjusted border color -->
-                        <h3 class="text-xl font-orbitron text-yellow-400 mb-4 border-b border-gray-700 pb-2">Hunter Profile</h3> <!-- Adjusted title -->
+                    <div class="w-full md:w-1/4 p-4 border-b-2 md:border-b-0 md:border-r-2 border-red-600 bg-gray-900/50 flex flex-col">
+                        <h3 class="text-xl font-orbitron text-yellow-400 mb-4 border-b border-gray-700 pb-2">Character Profile</h3> <!-- Reverted to generic profile title -->
                         <div id="character-profile-details" class="text-xs text-gray-300 flex-1 overflow-y-auto custom-scrollbar">
                             <!-- Character details injected here -->
                         </div>
@@ -1117,18 +1109,18 @@
 
                     <!-- Game History and Input -->
                     <div class="w-full md:w-3/4 flex flex-col p-4">
-                        <h3 class="text-2xl font-orbitron text-red-400 mb-4 text-center border-b border-gray-700 pb-2">Infernal AI's Narrative</h3> <!-- Adjusted title -->
+                        <h3 class="text-2xl font-orbitron text-red-400 mb-4 text-center border-b border-gray-700 pb-2">AI's Narrative</h3> <!-- Reverted to generic AI narrative title -->
 
                         <!-- TTS Controls -->
                         <div class="flex flex-col sm:flex-row gap-2 mb-4 p-2 bg-gray-900/50 border border-gray-700 rounded-md items-center">
                             <label class="inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="tts-toggle" class="sr-only peer" ${ttsEnabled ? 'checked' : ''}>
-                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600"></div> <!-- Adjusted color -->
+                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600"></div>
                                 <span class="ms-3 text-sm font-medium text-gray-300">TTS On/Off</span>
                             </label>
                             <div class="flex-1 flex flex-col sm:flex-row gap-2 items-center w-full sm:w-auto">
-                                <label for="narrative-voice-select" class="text-sm font-medium text-gray-300 whitespace-nowrap">Infernal AI Voice:</label> <!-- Adjusted label -->
-                                <select id="narrative-voice-select" class="flex-1 p-2 rounded-lg bg-gray-700 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 text-sm"></select> <!-- Adjusted colors -->
+                                <label for="narrative-voice-select" class="text-sm font-medium text-gray-300 whitespace-nowrap">AI Voice:</label> <!-- Reverted to generic AI Voice -->
+                                <select id="narrative-voice-select" class="flex-1 p-2 rounded-lg bg-gray-700 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 text-sm"></select>
                             </div>
                         </div>
 
@@ -1140,14 +1132,14 @@
                         </div>
                         <div class="flex flex-col sm:flex-row gap-2">
                             <input type="text" id="game-input"
-                                class="flex-1 p-3 rounded-lg bg-gray-900 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-400" <!-- Adjusted colors -->
+                                class="flex-1 p-3 rounded-lg bg-gray-900 text-white border border-red-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-400"
                                 placeholder="Type your command (!COMMANDS for help)...">
                             <button id="send-input-button"
-                                class="px-6 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold rounded-lg shadow-md hover:from-red-600 hover:to-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"> <!-- Adjusted colors -->
+                                class="px-6 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold rounded-lg shadow-md hover:from-red-600 hover:to-orange-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                                 Send
                             </button>
                             <button id="voice-input-button"
-                                class="px-6 py-3 font-bold rounded-lg shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"> <!-- Adjusted colors -->
+                                class="px-6 py-3 font-bold rounded-lg shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600">
                                 Voice Input
                             </button>
                         </div>
@@ -1157,14 +1149,13 @@
             setupGameScreenListeners();
             updateCharacterProfileDisplay();
             updateChatHistoryDisplay();
-            // Initial greeting from Infernal AI if history is empty
+            // Initial greeting if history is empty (reverted to original CyberLord style)
             if (gameHistory.length === 0 && character) {
-                const initialNarrative = `Welcome, ${character.name}, to Atheria Prime, a desolate bastion clinging to survival amidst the corruption. Your hunt begins now. What is your first move?`; // Adjusted narrative
+                const initialNarrative = `Welcome, ${character.name}, to Atheria Prime. Your journey begins now. What is your first move?`; // Generic message
                 gameHistory.push({ type: 'narrative', text: initialNarrative });
                 updateChatHistoryDisplay();
                 speakNarrative(initialNarrative); // Speak initial narrative
             } else if (gameHistory.length > 0) {
-                // If loading a game, speak the last narrative entry
                 const lastNarrative = gameHistory.slice().reverse().find(entry => entry.type === 'narrative');
                 if (lastNarrative) {
                     speakNarrative(lastNarrative.text);
@@ -1174,7 +1165,6 @@
             // Load and populate TTS voices after elements are in DOM
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.onvoiceschanged = loadVoices;
-                // Call initially in case voices are already loaded
                 if (window.speechSynthesis.getVoices().length > 0) {
                     loadVoices();
                 }
@@ -1204,7 +1194,7 @@
                         <p class="font-bold text-white">Stats:</p>
                         <ul class="list-disc list-inside ml-2">
                             ${Object.entries(character.stats).map(([statName, value]) => `
-                                <li><span class="font-semibold text-yellow-300">${statName.charAt(0).toUpperCase() + statName.slice(1)}:</span> ${value}</li> <!-- Adjusted color -->
+                                <li><span class="font-semibold text-yellow-300">${statName.charAt(0).toUpperCase() + statName.slice(1)}:</span> ${value}</li>
                             `).join('')}
                         </ul>
                     </div>
@@ -1219,18 +1209,18 @@
         function updateChatHistoryDisplay(isTyping = false) {
             const chatHistoryElement = document.getElementById('chat-history');
             if (chatHistoryElement) {
-                // Adjusted colors for chat history for Hellhunters theme
+                // Reverted chat history colors and labels to match original Hellhunters (or generic)
                 chatHistoryElement.innerHTML = gameHistory.map((entry, index) => `
-                    <div class="mb-2 p-2 rounded-md ${entry.type === 'input' ? 'bg-orange-900/30 text-orange-200 self-end ml-auto' : 'bg-red-900/30 text-red-200 self-start mr-auto'} max-w-[90%] break-words">
-                        <span class="font-bold">${entry.type === 'input' ? 'Hunter: ' : 'Infernal AI: '}</span> <!-- Adjusted labels -->
+                    <div class="mb-2 p-2 rounded-md ${entry.type === 'input' ? 'bg-blue-900/30 text-blue-200 self-end ml-auto' : 'bg-green-900/30 text-green-200 self-start mr-auto'} max-w-[90%] break-words">
+                        <span class="font-bold">${entry.type === 'input' ? 'Player: ' : 'AI: '}</span>
                         ${entry.text}
                     </div>
                 `).join('');
 
                 if (isTyping) {
                     chatHistoryElement.innerHTML += `
-                        <div class="mb-2 p-2 rounded-md bg-red-900/30 text-red-200 self-start mr-auto max-w-[90%]">
-                            <span class="font-bold">Infernal AI: </span> <!-- Adjusted label -->
+                        <div class="mb-2 p-2 rounded-md bg-green-900/30 text-green-200 self-start mr-auto max-w-[90%]">
+                            <span class="font-bold">AI: </span>
                             <span class="animate-pulse">...</span>
                         </div>
                     `;
@@ -1253,7 +1243,7 @@
         }
 
         async function handleRestartGame() {
-            updateMessage('Initiating full system reset... purging all memories...'); // Adjusted message
+            updateMessage('Initiating full system reset... erasing all memories...'); // Reverted message
             setGameInputDisabled(true);
             window.speechSynthesis.cancel(); // Stop any TTS
 
@@ -1273,14 +1263,14 @@
 
             setTimeout(() => {
                 renderCharacterCreator();
-                updateMessage('System rebooted. Welcome back to the character creator, Hunter.'); // Adjusted message
+                updateMessage('System rebooted. Welcome back to the character creator.'); // Reverted message
                 setGameInputDisabled(false); // Enable input for character creator
             }, 1500);
         }
 
         function handleCopyLog() {
             const logText = gameHistory.map(entry => {
-                const prefix = entry.type === 'input' ? 'Hunter: ' : 'Infernal AI: '; // Adjusted labels
+                const prefix = entry.type === 'input' ? 'Player: ' : 'AI: '; // Reverted labels
                 return prefix + entry.text;
             }).join('\n');
 
@@ -1300,9 +1290,9 @@
             }
         }
 
-        async function sendToCyberLord(userCommand) { // Function name left as sendToCyberLord for consistency, but acts as "send to Infernal AI"
+        async function sendToCyberLord(userCommand) { // Function name left as sendToCyberLord for consistency
             setGameInputDisabled(true); // Disable input while AI is thinking
-            updateMessage('Infernal AI is processing...'); // Adjusted message
+            updateMessage('AI is thinking...'); // Reverted message
             updateChatHistoryDisplay(true); // Show typing indicator
             window.speechSynthesis.cancel(); // Stop any ongoing TTS
 
@@ -1318,14 +1308,14 @@
                 return;
             } else if (lowerCaseCommand === '!save') {
                 saveGame();
-                updateMessage('Game saved, Hunter!', 'success'); // Adjusted message
+                updateMessage('Game saved!', 'success'); // Reverted message
                 setGameInputDisabled(false);
                 updateChatHistoryDisplay(false);
                 return;
             } else if (lowerCaseCommand === '!load') {
                 currentScreen = 'characterCreator';
                 renderCharacterCreator();
-                updateMessage('Select a saved hunt to load from the "Load or Delete Game" section.', 'info'); // Adjusted message
+                updateMessage('Select a game to load from the "Load or Delete Game" section.', 'info'); // Reverted message
                 setGameInputDisabled(false);
                 return;
             }
@@ -1355,7 +1345,7 @@
                 return;
             } else if (lowerCaseCommand === '!copylog') {
                 handleCopyLog();
-                updateMessage('Hunt log copied to clipboard!', 'info'); // Adjusted message
+                updateMessage('Gameplay log copied to clipboard!', 'info'); // Reverted message
                 setGameInputDisabled(false);
                 updateChatHistoryDisplay(false);
                 return;
@@ -1375,7 +1365,7 @@
 
             // If character health is 0, only allow !RESTART command
             if (character && character.health <= 0) {
-                updateMessage("Your hunt ends here. You are defeated. Only the '!RESTART' command will work now.", 'red'); // Adjusted message
+                updateMessage("You are defeated. Only the '!RESTART' command will work now.", 'red'); // Reverted message
                 setGameInputDisabled(true);
                 updateChatHistoryDisplay(false);
                 return;
@@ -1384,19 +1374,20 @@
             // =================================================================================================================
             // AI API call logic
             // =================================================================================================================
-            const prompt = `You are the Infernal AI, the Storyteller for a dark fantasy RPG set in Atheria Prime. The player character's name is ${character.name}, they are ${character.gender}, a ${races[character.race]?.name} ${classes[character.className]?.name} with these stats: Strength ${character.stats.strength}, Intelligence ${character.stats.intelligence}, Dexterity ${character.stats.dexterity}, Charisma ${character.stats.charisma}, Luck ${character.stats.luck}, Stamina ${character.stats.stamina}.
+            // Reverted prompt to original generic style, but kept "Atheria Prime"
+            const prompt = `You are an AI Game Master for a futuristic sci-fi RPG set in Atheria Prime. The player character's name is ${character.name}, they are ${character.gender}, a ${races[character.race]?.name} ${classes[character.className]?.name} with these stats: Strength ${character.stats.strength}, Intelligence ${character.stats.intelligence}, Dexterity ${character.stats.dexterity}, Charisma ${character.stats.charisma}, Luck ${character.stats.luck}, Stamina ${character.stats.stamina}.
             Current Health: ${character.health}, Current Credits: ${character.credits}, Current XP: ${character.xp}.
             
-            Atheria Prime Demographics:
-            - Humans: Approximately 50% of the population. They are resilient but often downtrodden, found in all sectors.
-            - MaurKaunn: Approximately 10% of the population. Often found in data analysis or subtle manipulation roles due to their intellect.
-            - Ursax: Approximately 15% of the population. Strong and enduring, often found in heavy labor or as enforcers in the lower sectors.
-            - Tigrax: Approximately 15% of the population. Agile and quick, often involved in illicit trades, scouting, or entertainment.
-            - PsyBer: Approximately 10% of the population. Integrated into tech and security networks, or as specialized combat units.
+            Atheria Prime Demographics (as provided by you):
+            - Humans: Approximately 60% of the population. They are the most common and can be found in all districts and roles.
+            - MaurKaunn: Approximately 10% of the population. Often found in academic, scientific, tech, or diplomatic roles due to their intellect and agility.
+            - Ursax: Approximately 10% of the population. Known for their strength and resilience, they are frequently found in heavy labor, security, combat sports, or as enforcers.
+            - Tigrax: Approximately 10% of the population. Valued for their agility and luck, they thrive in entertainment, stealth operations, or various underground activities.
+            - PsyBer: Approximately 10% of the population. These sentient AIs are integrated into advanced tech sectors, information networks, or as specialized service units.
             When describing characters or populating scenes, ensure you represent this racial diversity naturally, adhering to these proportions. Introduce individuals from these races as appropriate to the narrative.
 
             Here is the game history so far:
-            ${gameHistory.map(entry => `${entry.type === 'input' ? 'Hunter: ' : 'Infernal AI: '}${entry.text}`).join('\n')} <!-- Adjusted labels -->
+            ${gameHistory.map(entry => `${entry.type === 'input' ? 'Player: ' : 'AI: '}${entry.text}`).join('\n')}
             Current important locations: ${importantLocations.join(', ') || 'None'}
             Current important people: ${importantPeople.join(', ') || 'None'}
             Current important events: ${importantEvents.join(', ') || 'None'}
@@ -1473,9 +1464,9 @@
                         const jsonText = result.candidates[0].content.parts[0].text;
                         const parsedResponse = JSON.parse(jsonText);
 
-                        const infernalAINarrative = parsedResponse.narrative || "The Infernal AI could not craft a detailed story based on your input. Try adjusting your character choices or input."; // Adjusted label
-                        gameHistory.push({ type: 'narrative', text: infernalAINarrative });
-                        speakNarrative(infernalAINarrative); // Speak the narrative
+                        const aiNarrative = parsedResponse.narrative || "The AI could not craft a detailed story based on your input. Try adjusting your character choices or input."; // Reverted to generic AI label
+                        gameHistory.push({ type: 'narrative', text: aiNarrative });
+                        speakNarrative(aiNarrative); // Speak the narrative
 
                         if (parsedResponse.healthChange !== undefined) character.health = Math.max(0, character.health + parsedResponse.healthChange);
                         if (parsedResponse.creditsChange !== undefined) character.credits = Math.max(0, character.credits + parsedResponse.creditsChange);
@@ -1488,16 +1479,16 @@
                                     ...character.stats,
                                     [parsedResponse.statBonus.stat]: Math.min(20, currentStatValue + parsedResponse.statBonus.amount)
                                 };
-                                updateMessage(`Infernal AI grants a +${parsedResponse.statBonus.amount} bonus to ${parsedResponse.statBonus.stat.charAt(0).toUpperCase() + parsedResponse.statBonus.stat.slice(1)}!`); // Adjusted label
+                                updateMessage(`AI grants a +${parsedResponse.statBonus.amount} bonus to ${parsedResponse.statBonus.stat.charAt(0).toUpperCase() + parsedResponse.statBonus.stat.slice(1)}!`); // Reverted to generic AI label
                             }
                         }
 
                         if (character.health <= 0) {
                             character.health = 0;
-                            deathSummary = parsedResponse.notableMomentsSummary || "Your hunt ends here. You fought bravely."; // Adjusted message
-                            gameHistory.push({ type: 'narrative', text: "--- HUNT OVER ---" }); // Adjusted message
+                            deathSummary = parsedResponse.notableMomentsSummary || "Your journey ends here. You fought bravely."; // Reverted message
+                            gameHistory.push({ type: 'narrative', text: "--- GAME OVER ---" }); // Reverted message
                             gameHistory.push({ type: 'narrative', text: "Notable Moments: " + deathSummary });
-                            updateMessage("Hunt Over: " + deathSummary + "\nType '!RESTART' to begin a new hunt.", 'red'); // Adjusted message
+                            updateMessage("Game Over: " + deathSummary + "\nType '!RESTART' to begin a new game.", 'red'); // Reverted message
                             setGameInputDisabled(true);
                             window.speechSynthesis.cancel();
                         }
@@ -1509,7 +1500,7 @@
                         updateCharacterProfileDisplay();
                         updateChatHistoryDisplay(false);
                     } else {
-                        const errorMessage = 'Failed to generate narrative: No content or unexpected API response structure from Infernal AI. Check console for "Full API Response:".'; // Adjusted label
+                        const errorMessage = 'Failed to generate narrative: No content or unexpected API response structure from AI. Check console for "Full API Response:".';
                         updateMessage(errorMessage, 'red');
                         console.error(errorMessage, result);
                     }
@@ -1595,8 +1586,9 @@
                 recognition.onstart = () => {
                     isListening = true;
                     updateMessage('Listening for your command...');
-                    voiceButton.classList.remove('bg-gradient-to-r', 'from-yellow-500', 'to-orange-500', 'hover:from-yellow-600', 'hover:to-orange-600'); // Adjusted colors
-                    voiceButton.classList.add('bg-red-600', 'hover:bg-red-700');
+                    // Reverted colors for voice button
+                    voiceButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    voiceButton.classList.add('bg-gradient-to-r', 'from-orange-500', 'to-yellow-500', 'hover:from-orange-600', 'hover:to-yellow-600');
                     voiceButton.textContent = 'Stop Listening';
                     setGameInputDisabled(true);
                     gameInput.placeholder = 'Voice input active...';
@@ -1607,7 +1599,8 @@
                     gameInput.value = transcript;
                     updateMessage(`Heard: "${transcript}"`);
                     isListening = false;
-                    voiceButton.classList.add('bg-gradient-to-r', 'from-yellow-500', 'to-orange-500', 'hover:from-yellow-600', 'hover:to-orange-600'); // Adjusted colors
+                    // Reverted colors for voice button
+                    voiceButton.classList.add('bg-gradient-to-r', 'from-orange-500', 'to-yellow-500', 'hover:from-orange-600', 'hover:to-yellow-600');
                     voiceButton.classList.remove('bg-red-600', 'hover:bg-red-700');
                     voiceButton.textContent = 'Voice Input';
                     setGameInputDisabled(false);
@@ -1623,7 +1616,8 @@
                         updateMessage(`Voice input error: ${event.error}`, 'red');
                     }
                     isListening = false;
-                    voiceButton.classList.add('bg-gradient-to-r', 'from-yellow-500', 'to-orange-500', 'hover:from-yellow-600', 'hover:to-orange-600'); // Adjusted colors
+                    // Reverted colors for voice button
+                    voiceButton.classList.add('bg-gradient-to-r', 'from-orange-500', 'to-yellow-500', 'hover:from-orange-600', 'hover:to-yellow-600');
                     voiceButton.classList.remove('bg-red-600', 'hover:bg-red-700');
                     voiceButton.textContent = 'Voice Input';
                     setGameInputDisabled(false);
@@ -1636,7 +1630,8 @@
                     if (currentMessage === 'Listening for your command...') {
                         updateMessage('');
                     }
-                    voiceButton.classList.add('bg-gradient-to-r', 'from-yellow-500', 'to-orange-500', 'hover:from-yellow-600', 'hover:to-orange-600'); // Adjusted colors
+                    // Reverted colors for voice button
+                    voiceButton.classList.add('bg-gradient-to-r', 'from-orange-500', 'to-yellow-500', 'hover:from-orange-600', 'hover:to-yellow-600');
                     voiceButton.classList.remove('bg-red-600', 'hover:bg-red-700');
                     voiceButton.textContent = 'Voice Input';
                     setGameInputDisabled(false);
@@ -1657,7 +1652,7 @@
             if (gridContainer) {
                 const numDivs = 20 * 10; // 20 rows, 10-20 cols as per CSS
                 gridContainer.innerHTML = Array(numDivs).fill().map((_, i) =>
-                    `<div class="bg-gradient-to-br from-red-800 to-yellow-800 animate-pulse-grid" style="animation-delay: ${i * 0.05}s;"></div>` // Adjusted colors
+                    `<div class="bg-gradient-to-br from-red-800 to-yellow-800 animate-pulse-grid" style="animation-delay: ${i * 0.05}s;"></div>`
                 ).join('');
             }
 
@@ -1667,7 +1662,6 @@
             // Load TTS voices when voices are ready
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.onvoiceschanged = loadVoices;
-                // If voices are already loaded before the event fires (browser dependent)
                 if (window.speechSynthesis.getVoices().length > 0) {
                     loadVoices();
                 }
