@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nemesis Rising: Skylight City</title> <!-- Original Title from your first file -->
+    <title>Nemesis Rising: Skylight City</title> <!-- ORIGINAL TITLE -->
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter and Orbitron -->
@@ -108,7 +108,7 @@
     <!-- Main content area -->
     <div id="app-container" class="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
         <h1 class="text-5xl md:text-6xl font-orbitron font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-600 drop-shadow-neon mb-8 text-center uppercase tracking-wider">
-            NEMESIS RISING: SKYLIGHT CITY <!-- Original Title -->
+            NEMESIS RISING: SKYLIGHT CITY <!-- ORIGINAL H1 TITLE -->
         </h1>
 
         <div id="game-content" class="w-full flex flex-col items-center">
@@ -537,9 +537,8 @@
         }
 
         // LORE Data (ORIGINAL from your first provided file)
-        // Note: Your original file did not have a defined 'loreData' global variable.
-        // It had `loreData.forEach` inside `showDistrictsModalFunc`.
-        // To make `!LORE` work, I'm providing a placeholder structure.
+        // Note: Your original file did not have a defined 'loreData' global variable used by `showLoreModalFunc`.
+        // To make `!LORE` work, I'm providing a placeholder structure consistent with how it's called.
         // You'll need to define your specific Hellhunters lore here.
         const loreData = [
             {
@@ -1395,7 +1394,7 @@
                 "stat": "strength|intelligence|dexterity|charisma|luck|stamina",
                 "amount": 1
             },
-            "notableMomentsSummary": "...", // OPTIONAL: A ONE PARAGRAPH summary of notable moments if player health drops to 0. Only provide if health becomes 0.
+            "notableMomentsSummary": { type: "STRING", nullable: true }, // OPTIONAL: A ONE PARAGRAPH summary of notable moments if player health drops to 0. Only provide if health becomes 0.
             "locations": ["...", "..."], // Updated list of important locations
             "people": ["...", "..."], // Updated list of important people
             "events": ["...", "..."] // Updated list of important events
